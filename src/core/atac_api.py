@@ -33,6 +33,20 @@ class ATaC:
         # Initialize default validator
         self.validator = AtacValidator()
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ATaC":
+        """Load an ATaC builder from an existing trajectory dictionary."""
+        traj = Trajectory.model_validate(data)
+        obj = cls(
+            version=traj.version,
+            name=traj.meta.name if traj.meta else "",
+            description=traj.meta.description if traj.meta else ""
+        )
+        obj.inputs = traj.inputs
+        obj.variables = traj.variables
+        obj.steps = traj.steps
+        return obj
+
     def add_input(self, name: str, input_type: DataType = "string", default_value: Any = None):
         """Define an input parameter."""
         in_def = InputDef(name=name, type=input_type, default=default_value)

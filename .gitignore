@@ -1,6 +1,7 @@
 .venv
 .env
 .agents
+trajs
 __pycache__
 *.egg-info
 design_docs/
