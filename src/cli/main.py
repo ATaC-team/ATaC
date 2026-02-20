@@ -8,6 +8,7 @@ import click
 import yaml
 
 from src.core.atac_api import ATaC
+from runtimes.v1.models import Trajectory
 
 
 def load_trajectory(file_path: str) -> dict[str, Any]:
@@ -92,6 +93,12 @@ def param(file_path: str):
             default = f" (default: {default_val})" if default_val is not None else ""
             
         click.echo(f"  - {name} [{inp_type}]{default}")
+
+
+@cli.command()
+def schema():
+    """Print the JSON schema for ATaC trajectories."""
+    click.echo(json.dumps(Trajectory.model_json_schema(), indent=2, ensure_ascii=False))
 
 
 @cli.command()
