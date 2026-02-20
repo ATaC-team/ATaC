@@ -42,8 +42,14 @@ class WorkflowRuntime:
         Returns:
             The final context outputs.
         """
-        await self._execute_steps(self.trajectory.steps)
-        return self.context.outputs
+        try:
+            await self._execute_steps(self.trajectory.steps)
+            return self.context.outputs
+        finally:
+            # Close any pooled MCP sessions
+            for executor in self.executors.values():
+                if hasattr(executor, 'close'):
+                    await executor.close()
 
     async def _execute_steps(self, steps: list[Step]):
         for step in steps:
