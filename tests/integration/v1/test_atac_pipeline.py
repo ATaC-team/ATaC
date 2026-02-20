@@ -1,7 +1,9 @@
 import pytest
-from runtimes.v1.validator import AtacValidator
-from runtimes.v1.runtime import WorkflowRuntime
+
 from runtimes.v1.executors.bash_executor import BashExecutor
+from runtimes.v1.runtime import WorkflowRuntime
+from runtimes.v1.validator import AtacValidator
+
 
 @pytest.mark.asyncio
 async def test_full_atac_pipeline():
