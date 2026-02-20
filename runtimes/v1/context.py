@@ -1,6 +1,6 @@
 from typing import Any
 
-import jinja2
+from jinja2.nativetypes import NativeEnvironment
 
 
 class WorkflowContext:
@@ -12,8 +12,9 @@ class WorkflowContext:
         self.outputs: dict[str, Any] = {}       # Accumulated (final result)
         self._latest: dict[str, Any] = {}       # Latest per step (for expressions)
         
-        # Configure Jinja2 environment for evaluating expressions like ${inputs.x}
-        self.env = jinja2.Environment(
+        # NativeEnvironment preserves Python native types (list, dict, bool, int)
+        # instead of converting everything to strings like the standard Environment.
+        self.env = NativeEnvironment(
             variable_start_string="${",
             variable_end_string="}"
         )
@@ -27,7 +28,7 @@ class WorkflowContext:
         }
         # Expose step outputs directly to support ${step_id.output.field}
         for step_id, output_val in self._latest.items():
-            if step_id not in context: # avoid overwriting 'inputs' etc
+            if step_id not in context:
                 context[step_id] = {"output": output_val}
                 
         # Expose variables directly to support ${var_name}
@@ -41,38 +42,15 @@ class WorkflowContext:
         """
         Recursively evaluate string templates using current state.
         
-        Args:
-             expr: A string containing ${...} variables, or a nested dict/list.
-             
-        Returns:
-             The evaluated value.
+        Uses Jinja2 NativeEnvironment so expressions like ${inputs.list}
+        return actual Python lists/dicts/bools instead of string representations.
         """
         if isinstance(expr, str):
-             # Fast path: no template tag
              if "${" not in expr:
                  return expr
             
-             # Fast path: single variable reference like "${inputs.x}" or "${variables.list}"
-             # Resolve directly from context to preserve native types (list, dict, int, etc.)
-             stripped = expr.strip()
-             if stripped.startswith("${") and stripped.endswith("}") and stripped.count("${") == 1:
-                 path = stripped[2:-1]  # e.g. "inputs.provinces"
-                 ctx = self._build_context_dict()
-                 try:
-                     value = ctx
-                     for part in path.split("."):
-                         if isinstance(value, dict):
-                             value = value[part]
-                         else:
-                             value = getattr(value, part)
-                     return value
-                 except (KeyError, AttributeError, TypeError):
-                     pass  # Fall through to Jinja rendering
-            
-             # General case: Jinja template rendering
              template = self.env.from_string(expr)
-             rendered = template.render(**self._build_context_dict())
-             return rendered
+             return template.render(**self._build_context_dict())
              
         elif isinstance(expr, dict):
             return {k: self.evaluate_expression(v) for k, v in expr.items()}
@@ -88,10 +66,8 @@ class WorkflowContext:
         
     def set_output(self, step_id: str, value: Any):
         """Record the output of a step. Latest value is used for expressions; all values accumulate in outputs."""
-        # Always update latest for expression resolution
         self._latest[step_id] = value
         
-        # Accumulate in outputs for final result
         if step_id in self.outputs:
             existing = self.outputs[step_id]
             if isinstance(existing, list):
@@ -100,4 +76,3 @@ class WorkflowContext:
                 self.outputs[step_id] = [existing, value]
         else:
             self.outputs[step_id] = value
-
