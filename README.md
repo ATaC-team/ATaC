@@ -12,6 +12,9 @@ ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和命令行工具
 - **声明式控制流**: 在 YAML 中实现循环 (`for`) 和条件 (`if-else`) 逻辑。
 - **多协议支持**: 统一驱动 `mcp://` (Model Context Protocol), `bash://` (Shell) 及 `kimi://` (Kimi 内置工具)。
 - **Agent 编程接口**: 提供 CLI 指令，使 LLM 能够通过命令行自主构建、修改和执行复杂工作流。
+- **可视化调试图谱**: 内置 Web UI (`atac ui`) 提供工作流运行时的可视化追踪调试功能。
+
+![ATaC Web UI](assets/ui.png)
 
 ### 📋 执行器兼容性
 | 执行器 | 协议 | 状态 | 说明 |
@@ -77,6 +80,9 @@ ATaC is a declarative workflow DSL and CLI tool for AI Agents. It codifies tool 
 * **Declarative Control Flow**: Native `for` and `if-else` support within YAML.
 * **Multi-protocol Support**: Unified execution for `mcp://`, `bash://`, and `kimi://`.
 * **Agentic Authoring**: CLI-first design allowing LLMs to programmatically build, refine, and execute their own workflows.
+* **Visual Graph Debugging**: Built-in Web UI (`atac ui`) for runtime workflow visualization and minimal-design editing.
+
+![ATaC Web UI](assets/ui.png)
 
 ### 📋 Executor Support
 
