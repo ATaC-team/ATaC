@@ -9,7 +9,7 @@
 ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和 CLI 工具。它允许你将复杂的 Agent 行为（工具调用、条件判断、循环执行）定义为可分发、可复用的“轨迹码（Trajectory as Code）”。
 
 ### 🚀 核心特性
-- **Agent 原生设计**: 专为 LLM Agent 协作设计。不仅提供人类可读的 YAML，还配套 `SKILL.md` 技能描述文件，让 Agent 能瞬间掌握操作技巧。
+- **Agent 原生设计**: 面向LLM Agent，智能录制最优执行轨迹。
 - **声明式 DSL**: 基于 YAML 定义工作流，支持循环 (`for`) 和条件判断 (`if-else`)。
 - **多协议执行器**: 原生支持 `mcp://` (Model Context Protocol), `bash://` (系统终端) 以及 `kimi://` (AI Agent 内置工具) 等多种执行协议。
 
@@ -116,7 +116,7 @@ graph TD
 ATaC is a declarative workflow DSL and CLI tool designed specifically for AI Agents. It allows you to define complex agent behaviors—such as sequential tool calls, conditional branching, and iterative loops—as distributable and reusable "Trajectories as Code."
 
 ### 🚀 Key Features
-- **Agent-Centric**: Built for LLM Agents. Every command and structure is designed to be easily manipulated by an AI, complemented by a dedicated `SKILL.md` for instant proficiency.
+- **Agent-Centric**: Built for LLM Agents, smart recording of optimal execution trajectories.
 - **Declarative DSL**: Define workflows in YAML with built-in logic for `for` loops and `if-else` branches.
 - **Multi-protocol Executors**: Native support for `mcp://` (Model Context Protocol), `bash://` (Shell), and `kimi://` (Agent Built-in Tools).
 
