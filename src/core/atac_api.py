@@ -66,57 +66,50 @@ class ATaC:
         """
         Resolve a dot-separated path to a nested steps list.
         
-        Path format:
-            None    → root steps
-            "0"     → steps[0].steps (for loop body)
-            "0.2"   → steps[0].steps[2].steps
-            "0.2.then" → steps[0].steps[2].then (if-then branch)
-            "0.2.else" → steps[0].steps[2].else_ (if-else branch)
+        Path format examples using indices from 'atac show':
+            None       -> root steps
+            "0"        -> first step's body (if it's a loop)
+            "0.2.then" -> then branch of step index 2 inside step 0
         """
         if not at_path:
             return self.steps
         
         current_list = self.steps
         parts = at_path.split(".")
-        
-        for part in parts:
-            if part == "then":
-                step = current_list  # parent is actually the if step
-                if not isinstance(step, IfStep):
-                    raise ValueError(f"'then' path only valid on an if step")
-                current_list = step.then
-            elif part == "else":
-                step = current_list
-                if not isinstance(step, IfStep):
-                    raise ValueError(f"'else' path only valid on an if step")
-                if step.else_ is None:
-                    step.else_ = []
-                current_list = step.else_
-            else:
-                idx = int(part)
-                target = current_list[idx]
+        i = 0
+        while i < len(parts):
+            idx = int(parts[i])
+            if idx >= len(current_list):
+                raise ValueError(f"Index {idx} out of range")
+            target = current_list[idx]
+            i += 1
+            
+            if i >= len(parts):
+                # We have reached the final step in the path. Return its body.
                 if isinstance(target, ForStep):
-                    current_list = target.steps
-                elif isinstance(target, IfStep):
-                    # Next part will select then/else; keep reference to the step
-                    # Check if there's a next part
-                    remaining = parts[parts.index(part)+1:]
-                    if remaining and remaining[0] in ("then", "else"):
-                        if remaining[0] == "then":
-                            current_list = target.then
-                        else:
-                            if target.else_ is None:
-                                target.else_ = []
-                            current_list = target.else_
-                        # Skip consumed parts
-                        parts_to_skip = parts.index(part) + 2
-                        if parts_to_skip >= len(parts):
-                            return current_list
-                    else:
-                        raise ValueError(f"If step at index {idx} requires .then or .else suffix")
-                else:
-                    raise ValueError(f"Step at index {idx} has no nested steps")
-        
+                    return target.steps
+                raise ValueError(f"Step at index {idx} does not have a single body. Use .then or .else for if-steps.")
+
+            # Look ahead for branch names (then/else)
+            sub_part = parts[i]
+            if sub_part == "then":
+                if not isinstance(target, IfStep):
+                    raise ValueError(f"'.then' only valid on an if-step")
+                current_list = target.then
+                i += 1
+            elif sub_part == "else":
+                if not isinstance(target, IfStep):
+                    raise ValueError(f"'.else' only valid on an if-step")
+                if target.else_ is None:
+                    target.else_ = []
+                current_list = target.else_
+                i += 1
+            elif isinstance(target, ForStep):
+                # Auto-navigate to for-loop body
+                current_list = target.steps
+            else:
+                raise ValueError(f"Nesting at '{sub_part}' not supported for step at index {idx}")
+                
         return current_list
 
     def add_step(self, step: Step, at_path: str | None = None):
