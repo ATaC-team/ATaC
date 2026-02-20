@@ -27,11 +27,18 @@ class WorkflowRuntime:
         else:
             self.trajectory = trajectory
         
+        # Apply input defaults from trajectory, then overlay user-provided inputs
+        merged_inputs: dict[str, Any] = {}
+        for inp_def in self.trajectory.inputs:
+            if inp_def.default is not None:
+                merged_inputs[inp_def.name] = inp_def.default
+        merged_inputs.update(inputs)
+        
         # Parse variables
         initial_vars = {v.name: v.value for v in self.trajectory.variables}
             
         self.context = WorkflowContext(
-            inputs=inputs, 
+            inputs=merged_inputs, 
             initial_vars=initial_vars
         )
 

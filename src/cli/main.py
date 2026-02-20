@@ -59,7 +59,8 @@ def run(file_path: str, config_paths: tuple[str, ...], input_pairs: tuple[str, .
     extra_configs = list(config_paths) if config_paths else None
     
     try:
-        asyncio.run(ATaC.execute(trajectory, inputs=inputs, mcp_config_paths=extra_configs))
+        outputs = asyncio.run(ATaC.execute(trajectory, inputs=inputs, mcp_config_paths=extra_configs))
+        click.echo(json.dumps(outputs, indent=2, ensure_ascii=False))
     except Exception as e:
         click.echo(f"Execution Error: {str(e)}", err=True)
         sys.exit(1)

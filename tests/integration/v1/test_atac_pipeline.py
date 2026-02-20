@@ -108,8 +108,11 @@ async def test_full_atac_pipeline():
     assert outputs_true["read_temp"]["returncode"] == 0
     assert "hello_atac_integration" in outputs_true["read_temp"]["stdout"]
     assert runtime_true.context.variables["internal_count"] == 1
-    # 'echo_fruit' output will only hold the LAST iteration result
-    assert "Eating banana" in outputs_true["echo_fruit"]["stdout"]
+    # 'echo_fruit' output accumulates as a list across for-loop iterations
+    assert isinstance(outputs_true["echo_fruit"], list)
+    assert len(outputs_true["echo_fruit"]) == 2
+    assert "Eating apple" in outputs_true["echo_fruit"][0]["stdout"]
+    assert "Eating banana" in outputs_true["echo_fruit"][1]["stdout"]
     
     # 4. Execution (with loop_flag = False)
     inputs_false = {"test_word": "skip_test", "loop_flag": "False"}

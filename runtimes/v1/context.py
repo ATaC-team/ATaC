@@ -9,7 +9,8 @@ class WorkflowContext:
     def __init__(self, inputs: dict[str, Any], initial_vars: dict[str, Any] | None = None):
         self.inputs = inputs
         self.variables = initial_vars or {}
-        self.outputs: dict[str, Any] = {}
+        self.outputs: dict[str, Any] = {}       # Accumulated (final result)
+        self._latest: dict[str, Any] = {}       # Latest per step (for expressions)
         
         # Configure Jinja2 environment for evaluating expressions like ${inputs.x}
         self.env = jinja2.Environment(
@@ -22,10 +23,10 @@ class WorkflowContext:
         context = {
             "inputs": self.inputs,
             "variables": self.variables,
-            "outputs": self.outputs
+            "outputs": self._latest
         }
         # Expose step outputs directly to support ${step_id.output.field}
-        for step_id, output_val in self.outputs.items():
+        for step_id, output_val in self._latest.items():
             if step_id not in context: # avoid overwriting 'inputs' etc
                 context[step_id] = {"output": output_val}
                 
@@ -51,14 +52,26 @@ class WorkflowContext:
              if "${" not in expr:
                  return expr
             
-             # Create template and render
+             # Fast path: single variable reference like "${inputs.x}" or "${variables.list}"
+             # Resolve directly from context to preserve native types (list, dict, int, etc.)
+             stripped = expr.strip()
+             if stripped.startswith("${") and stripped.endswith("}") and stripped.count("${") == 1:
+                 path = stripped[2:-1]  # e.g. "inputs.provinces"
+                 ctx = self._build_context_dict()
+                 try:
+                     value = ctx
+                     for part in path.split("."):
+                         if isinstance(value, dict):
+                             value = value[part]
+                         else:
+                             value = getattr(value, part)
+                     return value
+                 except (KeyError, AttributeError, TypeError):
+                     pass  # Fall through to Jinja rendering
+            
+             # General case: Jinja template rendering
              template = self.env.from_string(expr)
              rendered = template.render(**self._build_context_dict())
-             
-             # If the rendered string looks like a standard type conversion could apply,
-             # we might want to cast it (e.g., "True" -> True), but for now return string as per standard Jinja behavior.
-             # Note: For complex objects, Jinja strings might not be enough, 
-             # but keeping it simple for the DSL.
              return rendered
              
         elif isinstance(expr, dict):
@@ -74,5 +87,17 @@ class WorkflowContext:
         self.variables[name] = value
         
     def set_output(self, step_id: str, value: Any):
-        """Record the output of a step."""
-        self.outputs[step_id] = value
+        """Record the output of a step. Latest value is used for expressions; all values accumulate in outputs."""
+        # Always update latest for expression resolution
+        self._latest[step_id] = value
+        
+        # Accumulate in outputs for final result
+        if step_id in self.outputs:
+            existing = self.outputs[step_id]
+            if isinstance(existing, list):
+                existing.append(value)
+            else:
+                self.outputs[step_id] = [existing, value]
+        else:
+            self.outputs[step_id] = value
+
