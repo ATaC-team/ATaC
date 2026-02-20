@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from mcp import ClientSession, StdioServerParameters
@@ -57,11 +58,17 @@ class McpExecutor:
                 # Call tool
                 result = await session.call_tool(tool_name, arguments=args)
                 
-                # Transform result into a simpler dict to pass along
+                # Transform result — auto-parse JSON strings in text fields
+                content = []
+                for item in result.content:
+                    text = getattr(item, 'text', str(item))
+                    try:
+                        text = json.loads(text)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                    content.append({"type": item.type, "text": text})
+                
                 return {
-                    "content": [
-                        {"type": item.type, "text": getattr(item, 'text', str(item))} 
-                        for item in result.content
-                    ],
+                    "content": content,
                     "isError": getattr(result, 'isError', False)
                 }
