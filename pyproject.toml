@@ -1,7 +1,7 @@
 [project]
 name = "atac"
 version = "0.1.0"
-description = "DSL and CLI for building and running Agentic Trajectories (ATaC)."
+description = "Agentic Trajectory as Code (ATaC) - A declarative workflow DSL for AI Agents"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
