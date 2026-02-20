@@ -12,7 +12,7 @@ ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和 CLI 工具。�
 - **Agent 原生设计**: 专为 LLM Agent 协作设计。不仅提供人类可读的 YAML，还配套 `SKILL.md` 技能描述文件，让 Agent 能瞬间掌握操作技巧。
 - **声明式 DSL**: 基于 YAML 定义工作流，支持循环 (`for`) 和条件判断 (`if-else`)。
 - **MCP 原生支持**: 通过 `mcp://` 协议无缝集成 Model Context Protocol 服务器。
-- **可视化寻址**: 通过 `atac show` 提供的路径坐标（如 `0.2.then`）让 Agent 像操控手术刀一样精确管理嵌套逻辑。
+- **可视化寻址**: 使用 `atac show` 提供的路径坐标（如 `0.2.then`）实现对嵌套逻辑的精确操控。
 
 ### 🛠 执行器支持矩阵 (Executor Support)
 | 执行器 (Executor) | 协议 (Scheme) | 状态 (Status) | 说明 |
@@ -22,38 +22,40 @@ ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和 CLI 工具。�
 | **Claude Code** | - | 🚧 待开发 | 欢迎社区贡献内置工具集成 |
 | **Kimi / Moonshot**| `kimi://` | ✅ 已支持 | 支持 Kimi-CLI 所有的内置工具 |
 
-### 📄 Agent 集成 (Skills)
-如果你在开发 Agent 辅助系统，只需将项目中的 `SKILL.md` 提供给 Agent（如作为 System Prompt 的一部分或 Skill 文件夹），它就能理解如何自主构建、调试和运行复杂的任务轨迹。
+### � 快速开始
 
-> [!TIP]
-> **推荐实践**：
-> ```bash
-> # 1. 将技能文件集成到 Agent
-> cp SKILL.md path/to/your/agent/skills/
-> 
-> # 2. 配置 MCP 服务目录
-> export ATAC_MCP_SERVER_CONFIGS="/path/to/your/mcp/config.json"
-> ```
+1. **安装 ATaC**
+   ```bash
+   pip install atac
+   ```
 
-### 📦 快速开始
-```bash
-pip install atac
+2. **配置 MCP 服务 (以高德地图为例)**
+   在 `mcp_config.json` 中添加服务并导出环境变量：
+   ```json
+   {
+     "mcpServers": {
+       "amap-maps": {
+         "command": "npx",
+         "args": ["-y", "@amap/amap-maps-mcp-server"],
+         "env": { "AMAP_MAPS_API_KEY": "YOUR_API_KEY_HERE" }
+       }
+     }
+   }
+   ```
+   ```bash
+   export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
+   ```
 
-# 1. 配置高德地图 MCP (在 mcp_config.json 中添加)
-# {
-#   "mcpServers": {
-#     "amap-maps": {
-#       "command": "npx",
-#       "args": ["-y", "@amap/amap-maps-mcp-server"],
-#       "env": { "AMAP_MAPS_API_KEY": "YOUR_API_KEY_HERE" }
-#     }
-#   }
-# }
-export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
+3. **集成技能到 Agent**
+   将本项目中的技能文件夹复制到你的 Agent 技能目录中：
+   ```bash
+   cp -r skills/atac/ path/to/your/agent/skills/
+   ```
 
-# 2. 运行示例轨迹
-atac run example/multi_province_center.yaml
-```
+4. **运行示例轨迹**
+   ```bash
+   atac run example/multi_province_center.yaml
+   ```
 
 ### 🤝 贡献指南
 我们欢迎各种形式的贡献！
@@ -71,7 +73,7 @@ ATaC is a declarative workflow DSL and CLI tool designed specifically for AI Age
 - **Agent-Centric**: Built for LLM Agents. Every command and structure is designed to be easily manipulated by an AI, complemented by a dedicated `SKILL.md` for instant proficiency.
 - **Declarative DSL**: Define workflows in YAML with built-in logic for `for` loops and `if-else` branches.
 - **MCP Native**: Seamless integration with Model Context Protocol servers via the `mcp://` protocol.
-- **Visual Addressing**: Precise control over nested logic using path coordinates (e.g., `0.2.then`) from `atac show`.
+- **Visual Addressing**: Precise management of nested logic using path coordinates (e.g., `0.2.then`) provided by `atac show`.
 
 ### 🛠 Executor Support Matrix
 | Executor | Scheme | Status | Note |
@@ -81,38 +83,40 @@ ATaC is a declarative workflow DSL and CLI tool designed specifically for AI Age
 | **Claude Code** | - | 🚧 Pending | Community contributions are welcome! |
 | **Kimi / Moonshot**| `kimi://` | ✅ Supported | Full support for Kimi-CLI built-in tools |
 
-### 📄 Agent Integration (Skills)
-The core value of ATaC lies in its **Skill System**. By providing the `SKILL.md` (found in the project root) to your Agent, it gains the immediate ability to autonomously architect, debug, and execute complex task trajectories.
+### � Quick Start
 
-> [!TIP]
-> **Best Practice**:
-> ```bash
-> # 1. Integrate the skill file into your Agent
-> cp SKILL.md path/to/your/agent/skills/
-> 
-> # 2. Configure the MCP service directory
-> export ATAC_MCP_SERVER_CONFIGS="/path/to/your/mcp/config.json"
-> ```
+1. **Install ATaC**
+   ```bash
+   pip install atac
+   ```
 
-### 📦 Quick Start
-```bash
-pip install atac
+2. **Configure MCP (Example: Amap Maps)**
+   Add the following to your `mcp_config.json` and export the path:
+   ```json
+   {
+     "mcpServers": {
+       "amap-maps": {
+         "command": "npx",
+         "args": ["-y", "@amap/amap-maps-mcp-server"],
+         "env": { "AMAP_MAPS_API_KEY": "YOUR_API_KEY_HERE" }
+       }
+     }
+   }
+   ```
+   ```bash
+   export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
+   ```
 
-# 1. Configure Amap MCP (Add to your mcp_config.json)
-# {
-#   "mcpServers": {
-#     "amap-maps": {
-#       "command": "npx",
-#       "args": ["-y", "@amap/amap-maps-mcp-server"],
-#       "env": { "AMAP_MAPS_API_KEY": "YOUR_API_KEY_HERE" }
-#     }
-#   }
-# }
-export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
+3. **Integrate Skills into Agent**
+   Copy the `skills/atac/` directory provided in this project to your Agent's skill folder:
+   ```bash
+   cp -r skills/atac/ path/to/your/agent/skills/
+   ```
 
-# 2. Run the example trajectory
-atac run example/multi_province_center.yaml
-```
+4. **Run Example Trajectory**
+   ```bash
+   atac run example/multi_province_center.yaml
+   ```
 
 ### 🤝 Contributing
 Contributions of any kind are welcome!
