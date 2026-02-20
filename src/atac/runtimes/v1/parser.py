@@ -25,7 +25,7 @@ class ActionParser:
         parsed = urllib.parse.urlparse(action_url)
         
         scheme = parsed.scheme.lower()
-        if scheme not in ("mcp", "bash"):
+        if scheme not in ("mcp", "bash", "kimi"):
             raise ValueError(f"Unsupported action scheme: {scheme}")
             
         # The 'netloc' usually holds the server name in our format mcp://server/...

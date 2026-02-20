@@ -6,7 +6,7 @@ DataType = Literal["string", "integer", "boolean", "float", "list", "object"]
 
 class ParsedAction(BaseModel):
     """Structured data parsed from an action URL."""
-    scheme: Literal["mcp", "bash"]
+    scheme: Literal["mcp", "bash", "kimi"]
     server_or_cmd: str
     method: str
     query_params: dict[str, str]

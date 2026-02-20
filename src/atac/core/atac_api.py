@@ -3,6 +3,7 @@ from typing import Any
 
 from atac.runtimes.v1.executors.base import ActionExecutor
 from atac.runtimes.v1.executors.bash_executor import BashExecutor
+from atac.runtimes.v1.executors.kimi_executor import KimiExecutor
 from atac.runtimes.v1.executors.mcp_executor import McpExecutor
 from atac.runtimes.v1.models import (
     ActionStep,
@@ -174,7 +175,8 @@ class ATaC:
         trajectory: dict[str, Any] | Trajectory, 
         inputs: dict[str, Any] | None = None,
         executors: dict[str, ActionExecutor] | None = None,
-        mcp_config_paths: list[str] | None = None
+        mcp_config_paths: list[str] | None = None,
+        kimi_path: str | None = None
     ) -> dict[str, Any]:
         """
         Statically execute an ATaC trajectory.
@@ -202,7 +204,8 @@ class ATaC:
             mcp_servers = load_mcp_servers(extra_paths=mcp_config_paths)
             execs = {
                 "bash": BashExecutor(),
-                "mcp": McpExecutor(servers_config=mcp_servers)
+                "mcp": McpExecutor(servers_config=mcp_servers),
+                "kimi": KimiExecutor(kimi_cli_path=kimi_path)
             }
         
         runtime = WorkflowRuntime(execs, trajectory, inputs)

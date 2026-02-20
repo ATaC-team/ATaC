@@ -41,6 +41,14 @@ ATaC enables building automated "trajectories" (workflows) that combine MCP tool
 - **`add-action <file> --id <id> --action <url> [--args <json>] [--output-to <var>] [--at <path>]`**
   Invokes an MCP tool (`mcp://server/method`) or Bash command (`bash://run`).
   *Example (MCP)*: `atac add-action t.yaml --id geo --action "mcp://amap-maps/maps_geo" --args '{"address": "${city}"}' --at 0`
+  *Example (Kimi)*: `atac add-action t.yaml --id fetch --action "kimi://web/fetch" --args '{"url": "https://example.com"}'`
+
+### Kimi-CLI Tools (Native Integration)
+ATaC integrates Kimi-CLI built-in tools via the `kimi://` scheme. These provide robust capabilities without requiring external MCP servers if Kimi-CLI is installed locally.
+- **`kimi://web/fetch`**: Robust web fetching with text extraction (local mode).
+- **`kimi://file/read`**: Read files with line numbers and offsets.
+- **`kimi://file/write`**: Write content to local files.
+- **`kimi://file/glob` / `file/grep`**: Powerful file system search.
 
 ## 4. Navigating with `--at`
 Use **`atac show <file>`** to view current step indices. The `--at` flag targets where to insert new steps:

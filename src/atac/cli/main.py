@@ -44,7 +44,8 @@ def cli():
 @click.argument("file_path", type=click.Path(exists=True))
 @click.option("--config", "-c", "config_paths", multiple=True, type=click.Path(exists=True), help="Path to MCP server config file (repeatable).")
 @click.option("--input", "-i", "input_pairs", multiple=True, help="Input values as key=value pairs.")
-def run(file_path: str, config_paths: tuple[str, ...], input_pairs: tuple[str, ...]):
+@click.option("--kimi-path", "kimi_path", type=click.Path(exists=True), help="Path to Kimi-CLI site-packages directory.")
+def run(file_path: str, config_paths: tuple[str, ...], input_pairs: tuple[str, ...], kimi_path: str | None):
     """Execute an ATaC DSL trajectory file (YAML or JSON)."""
     trajectory = load_trajectory(file_path)
     
@@ -60,7 +61,12 @@ def run(file_path: str, config_paths: tuple[str, ...], input_pairs: tuple[str, .
     extra_configs = list(config_paths) if config_paths else None
     
     try:
-        outputs = asyncio.run(ATaC.execute(trajectory, inputs=inputs, mcp_config_paths=extra_configs))
+        outputs = asyncio.run(ATaC.execute(
+            trajectory, 
+            inputs=inputs, 
+            mcp_config_paths=extra_configs,
+            kimi_path=kimi_path
+        ))
         click.echo(json.dumps(outputs, indent=2, ensure_ascii=False))
     except Exception as e:
         click.echo(f"Execution Error: {str(e)}", err=True)

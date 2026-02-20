@@ -126,7 +126,7 @@
                 },
                 "action": {
                     "type": "string",
-                    "pattern": "^(mcp|bash)://.*"
+                    "pattern": "^(mcp|bash|kimi)://.*"
                 },
                 "args": {
                     "type": "object"

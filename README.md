@@ -20,7 +20,7 @@ ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和 CLI 工具。�
 | **MCP** | `mcp://` | ✅ 已支持 | 原生支持所有符合 MCP 标准的服务 |
 | **Bash** | `bash://` | ✅ 已支持 | 支持本地终端命令及脚本执行 |
 | **Claude Code** | - | 🚧 待开发 | 欢迎社区贡献内置工具集成 |
-| **Kimi / Moonshot**| - | 🚧 待开发 | 欢迎社区贡献内置工具集成 |
+| **Kimi / Moonshot**| `kimi://` | ✅ 已支持 | 支持 Kimi-CLI 所有的内置工具 |
 
 ### 📄 Agent 集成 (Skills)
 如果你在开发 Agent 辅助系统，只需将项目中的 `SKILL.md` 提供给 Agent（如作为 System Prompt 的一部分或 Skill 文件夹），它就能理解如何自主构建、调试和运行复杂的任务轨迹。
@@ -67,7 +67,7 @@ ATaC is a declarative workflow DSL and CLI tool designed specifically for AI Age
 | **MCP** | `mcp://` | ✅ Supported | Native support for all MCP servers |
 | **Bash** | `bash://` | ✅ Supported | Run local terminal commands & scripts |
 | **Claude Code** | - | 🚧 Pending | Community contributions are welcome! |
-| **Kimi / Moonshot**| - | 🚧 Pending | Community contributions are welcome! |
+| **Kimi / Moonshot**| `kimi://` | ✅ Supported | Full support for Kimi-CLI built-in tools |
 
 ### 📄 Agent Integration (Skills)
 The core value of ATaC lies in its **Skill System**. By providing the `SKILL.md` (found in the project root) to your Agent, it gains the immediate ability to autonomously architect, debug, and execute complex task trajectories.
