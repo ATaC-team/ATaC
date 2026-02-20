@@ -7,7 +7,10 @@ from runtimes.v1.executors.mcp_executor import McpExecutor
 from runtimes.v1.models import (
     ActionStep,
     DataType,
+    ForStep,
+    IfStep,
     InputDef,
+    SetStep,
     Step,
     Trajectory,
     VariableDef,
@@ -59,24 +62,90 @@ class ATaC:
         self.variables.append(var_def)
         return self
 
-    def add_step(self, step: Step):
-        """Append a step to the workflow."""
-        self.steps.append(step)
+    def _resolve_steps_list(self, at_path: str | None) -> list[Step]:
+        """
+        Resolve a dot-separated path to a nested steps list.
+        
+        Path format:
+            None    → root steps
+            "0"     → steps[0].steps (for loop body)
+            "0.2"   → steps[0].steps[2].steps
+            "0.2.then" → steps[0].steps[2].then (if-then branch)
+            "0.2.else" → steps[0].steps[2].else_ (if-else branch)
+        """
+        if not at_path:
+            return self.steps
+        
+        current_list = self.steps
+        parts = at_path.split(".")
+        
+        for part in parts:
+            if part == "then":
+                step = current_list  # parent is actually the if step
+                if not isinstance(step, IfStep):
+                    raise ValueError(f"'then' path only valid on an if step")
+                current_list = step.then
+            elif part == "else":
+                step = current_list
+                if not isinstance(step, IfStep):
+                    raise ValueError(f"'else' path only valid on an if step")
+                if step.else_ is None:
+                    step.else_ = []
+                current_list = step.else_
+            else:
+                idx = int(part)
+                target = current_list[idx]
+                if isinstance(target, ForStep):
+                    current_list = target.steps
+                elif isinstance(target, IfStep):
+                    # Next part will select then/else; keep reference to the step
+                    # Check if there's a next part
+                    remaining = parts[parts.index(part)+1:]
+                    if remaining and remaining[0] in ("then", "else"):
+                        if remaining[0] == "then":
+                            current_list = target.then
+                        else:
+                            if target.else_ is None:
+                                target.else_ = []
+                            current_list = target.else_
+                        # Skip consumed parts
+                        parts_to_skip = parts.index(part) + 2
+                        if parts_to_skip >= len(parts):
+                            return current_list
+                    else:
+                        raise ValueError(f"If step at index {idx} requires .then or .else suffix")
+                else:
+                    raise ValueError(f"Step at index {idx} has no nested steps")
+        
+        return current_list
+
+    def add_step(self, step: Step, at_path: str | None = None):
+        """Append a step to the workflow at the given path."""
+        target = self._resolve_steps_list(at_path)
+        target.append(step)
         return self
 
-    def add_action_step(self, action_id: str, action: str, args: dict[str, Any] | None = None, **kwargs):
-        """Helper to append a simple action step."""
+    def add_action_step(self, action_id: str, action: str, args: dict[str, Any] | None = None, 
+                        at_path: str | None = None, **kwargs):
+        """Append an action step."""
         if_cond = kwargs.pop("if", None) or kwargs.pop("if_condition", None)
-        
-        step = ActionStep(
-            id=action_id,
-            action=action,
-            args=args,
-            if_condition=if_cond,
-            **kwargs
-        )
-        self.add_step(step)
-        return self
+        step = ActionStep(id=action_id, action=action, args=args, if_condition=if_cond, **kwargs)
+        return self.add_step(step, at_path)
+    
+    def add_set_step(self, variables: dict[str, Any], at_path: str | None = None):
+        """Append a set step."""
+        step = SetStep(variables=variables)
+        return self.add_step(step, at_path)
+    
+    def add_for_step(self, in_expr: str, item: str, at_path: str | None = None):
+        """Append a for-loop step (with empty body)."""
+        step = ForStep(in_=in_expr, item=item, steps=[])
+        return self.add_step(step, at_path)
+    
+    def add_if_step(self, condition: str, at_path: str | None = None):
+        """Append an if step (with empty then/else branches)."""
+        step = IfStep(condition=condition, then=[], else_=[])
+        return self.add_step(step, at_path)
 
     def export(self) -> dict[str, Any]:
         """Export the workflow definition as a dictionary."""

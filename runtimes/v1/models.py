@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 DataType = Literal["string", "integer", "boolean", "float", "list", "object"]
 
@@ -22,6 +22,7 @@ class VariableDef(BaseModel):
     value: Any | None = None
 
 class BaseStep(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     id: str | None = None
     timeout: int | str | None = None
     if_condition: str | None = Field(default=None, alias="if")
