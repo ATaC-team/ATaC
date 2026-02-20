@@ -13,6 +13,8 @@
     "@tailwindcss/vite": "^4.2.0",
     "@xyflow/react": "^12.10.1",
     "classnames": "^2.5.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "js-yaml": "^4.1.1",
     "lucide-react": "^0.575.0",
     "react": "^19.2.0",
@@ -21,6 +23,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
