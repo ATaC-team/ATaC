@@ -17,7 +17,7 @@ def load_trajectory(file_path: str) -> dict[str, Any]:
         click.echo(f"Error: File '{file_path}' does not exist.", err=True)
         sys.exit(1)
         
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         if path.suffix in (".yaml", ".yml"):
             return yaml.safe_load(f)
         return json.load(f)
@@ -41,14 +41,25 @@ def cli():
 
 @cli.command()
 @click.argument("file_path", type=click.Path(exists=True))
-def run(file_path: str):
+@click.option("--config", "-c", "config_paths", multiple=True, type=click.Path(exists=True), help="Path to MCP server config file (repeatable).")
+@click.option("--input", "-i", "input_pairs", multiple=True, help="Input values as key=value pairs.")
+def run(file_path: str, config_paths: tuple[str, ...], input_pairs: tuple[str, ...]):
     """Execute an ATaC DSL trajectory file (YAML or JSON)."""
     trajectory = load_trajectory(file_path)
     
-    # In a full CLI, we'd parse extra arguments as inputs
-    # For now, we assume structural validation and basic execution
+    # Parse key=value input pairs
+    inputs = {}
+    for pair in input_pairs:
+        if "=" not in pair:
+            click.echo(f"Error: Invalid input format '{pair}', expected key=value.", err=True)
+            sys.exit(1)
+        key, value = pair.split("=", 1)
+        inputs[key] = value
+    
+    extra_configs = list(config_paths) if config_paths else None
+    
     try:
-        outputs = asyncio.run(ATaC.execute(trajectory))
+        outputs = asyncio.run(ATaC.execute(trajectory, inputs=inputs, mcp_config_paths=extra_configs))
         click.echo(json.dumps(outputs, indent=2))
     except Exception as e:
         click.echo(f"Execution Error: {str(e)}", err=True)

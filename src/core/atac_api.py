@@ -111,18 +111,37 @@ class ATaC:
     async def execute(
         trajectory: dict[str, Any] | Trajectory, 
         inputs: dict[str, Any] | None = None,
-        executors: dict[str, ActionExecutor] | None = None
+        executors: dict[str, ActionExecutor] | None = None,
+        mcp_config_paths: list[str] | None = None
     ) -> dict[str, Any]:
-        """Statically execute an ATaC trajectory."""
+        """
+        Statically execute an ATaC trajectory.
+        
+        MCP servers are resolved in order of priority:
+          1. Explicit `executors` dict (highest priority)
+          2. Config files from `mcp_config_paths` + env ATAC_MCP_SERVER_CONFIGS
+          3. Empty MCP config (bash-only fallback)
+        
+        Args:
+            trajectory: DSL trajectory dict or Trajectory model.
+            inputs: Runtime input values.
+            executors: Pre-built executors (takes priority over config).
+            mcp_config_paths: Extra MCP config file paths, merged with env.
+        """
         inputs = inputs or {}
         
         if isinstance(trajectory, dict):
             AtacValidator().validate(trajectory)
-            
-        execs = executors or {
-            "bash": BashExecutor(),
-            "mcp": McpExecutor(servers_config={})
-        }
+        
+        if executors:
+            execs = executors
+        else:
+            from src.core.config import load_mcp_servers
+            mcp_servers = load_mcp_servers(extra_paths=mcp_config_paths)
+            execs = {
+                "bash": BashExecutor(),
+                "mcp": McpExecutor(servers_config=mcp_servers)
+            }
         
         runtime = WorkflowRuntime(execs, trajectory, inputs)
         return await runtime.run()
