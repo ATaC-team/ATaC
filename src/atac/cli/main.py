@@ -7,8 +7,8 @@ from typing import Any
 import click
 import yaml
 
-from src.core.atac_api import ATaC
-from runtimes.v1.models import Trajectory
+from atac.core.atac_api import ATaC
+from atac.runtimes.v1.models import Trajectory
 
 
 def load_trajectory(file_path: str) -> dict[str, Any]:

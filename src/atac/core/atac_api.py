@@ -1,10 +1,10 @@
 import json
 from typing import Any
 
-from runtimes.v1.executors.base import ActionExecutor
-from runtimes.v1.executors.bash_executor import BashExecutor
-from runtimes.v1.executors.mcp_executor import McpExecutor
-from runtimes.v1.models import (
+from atac.runtimes.v1.executors.base import ActionExecutor
+from atac.runtimes.v1.executors.bash_executor import BashExecutor
+from atac.runtimes.v1.executors.mcp_executor import McpExecutor
+from atac.runtimes.v1.models import (
     ActionStep,
     DataType,
     ForStep,
@@ -15,8 +15,8 @@ from runtimes.v1.models import (
     Trajectory,
     VariableDef,
 )
-from runtimes.v1.runtime import WorkflowRuntime
-from runtimes.v1.validator import AtacValidator
+from atac.runtimes.v1.runtime import WorkflowRuntime
+from atac.runtimes.v1.validator import AtacValidator
 
 
 class ATaC:
@@ -198,7 +198,7 @@ class ATaC:
         if executors:
             execs = executors
         else:
-            from src.core.config import load_mcp_servers
+            from atac.core.config import load_mcp_servers
             mcp_servers = load_mcp_servers(extra_paths=mcp_config_paths)
             execs = {
                 "bash": BashExecutor(),

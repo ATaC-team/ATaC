@@ -1,7 +1,7 @@
 import pytest
 
-from runtimes.v1.executors.bash_executor import BashExecutor
-from runtimes.v1.runtime import WorkflowRuntime
+from atac.runtimes.v1.executors.bash_executor import BashExecutor
+from atac.runtimes.v1.runtime import WorkflowRuntime
 
 
 @pytest.mark.asyncio

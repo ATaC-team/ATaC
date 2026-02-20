@@ -1,6 +1,6 @@
 from typing import Any, Protocol
 
-from runtimes.v1.models import ParsedAction
+from atac.runtimes.v1.models import ParsedAction
 
 
 class ActionExecutor(Protocol):

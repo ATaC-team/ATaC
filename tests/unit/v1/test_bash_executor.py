@@ -1,7 +1,7 @@
 import pytest
 
-from runtimes.v1.executors.bash_executor import BashExecutor
-from runtimes.v1.parser import ParsedAction
+from atac.runtimes.v1.executors.bash_executor import BashExecutor
+from atac.runtimes.v1.parser import ParsedAction
 
 
 @pytest.mark.asyncio

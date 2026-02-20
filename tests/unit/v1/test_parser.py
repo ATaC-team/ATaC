@@ -1,6 +1,6 @@
 import pytest
 
-from runtimes.v1.parser import ActionParser
+from atac.runtimes.v1.parser import ActionParser
 
 
 def test_parse_mcp_action():

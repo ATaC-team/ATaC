@@ -2,7 +2,7 @@ import subprocess
 import sys
 from typing import Any
 
-from runtimes.v1.models import ParsedAction
+from atac.runtimes.v1.models import ParsedAction
 
 
 class BashExecutor:

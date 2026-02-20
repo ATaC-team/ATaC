@@ -1,7 +1,7 @@
 [project]
 name = "atac"
 version = "0.1.0"
-description = "Add your description here"
+description = "DSL and CLI for building and running Agentic Trajectories (ATaC)."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -22,4 +22,14 @@ ignore = ["PERF203", "E501"]
 dev = ["pytest>=9.0.2", "pytest-asyncio>=1.3.0"]
 
 [project.scripts]
-atac = "src.cli.main:cli"
+atac = "atac.cli.main:cli"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["atac*"]
+
+[tool.setuptools.package-data]
+"atac.specs.v1" = ["*.json"]

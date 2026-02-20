@@ -5,3 +5,4 @@ trajs
 __pycache__
 *.egg-info
 design_docs/
+dist

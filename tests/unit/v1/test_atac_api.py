@@ -1,6 +1,6 @@
 import pytest
 
-from src.core.atac_api import ATaC
+from atac.core.atac_api import ATaC
 
 
 def test_workflow_export_json():

@@ -1,6 +1,6 @@
 import urllib.parse
 
-from runtimes.v1.models import ParsedAction
+from atac.runtimes.v1.models import ParsedAction
 
 
 class ActionParser:

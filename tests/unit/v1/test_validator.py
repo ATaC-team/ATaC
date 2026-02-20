@@ -2,7 +2,7 @@
 import pytest
 from jsonschema import ValidationError
 
-from runtimes.v1.validator import AtacValidator
+from atac.runtimes.v1.validator import AtacValidator
 
 
 @pytest.fixture

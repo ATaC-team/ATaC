@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from mcp import StdioServerParameters
 
-from runtimes.v1.executors.mcp_executor import McpExecutor
-from runtimes.v1.parser import ParsedAction
+from atac.runtimes.v1.executors.mcp_executor import McpExecutor
+from atac.runtimes.v1.parser import ParsedAction
 
 
 @pytest.fixture
@@ -28,8 +28,8 @@ async def test_mcp_executor_unknown_server(mock_mcp_config):
         await executor.execute(action, {})
 
 @pytest.mark.asyncio
-@patch('runtimes.v1.executors.mcp_executor.stdio_client')
-@patch('runtimes.v1.executors.mcp_executor.ClientSession')
+@patch('atac.runtimes.v1.executors.mcp_executor.stdio_client')
+@patch('atac.runtimes.v1.executors.mcp_executor.ClientSession')
 async def test_mcp_executor_success(mock_Session, mock_stdio_client, mock_mcp_config):
     # Setup Context Managers Mocks
     mock_stdio_cm = AsyncMock()

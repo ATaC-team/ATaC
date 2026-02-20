@@ -5,7 +5,7 @@ from typing import Any
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-from runtimes.v1.models import ParsedAction
+from atac.runtimes.v1.models import ParsedAction
 
 
 class McpExecutor:
