@@ -6,7 +6,7 @@
 
 ## 中文
 
-ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和命令行工具。它将 Agent 的工具调用、逻辑判断和循环执行定义为可分发的 YAML 配置文件（轨迹代码）。
+ATaC 是一个专为 AI Agent 设计的声明式轨迹 DSL 和命令行工具。它将 Agent 的工具调用、逻辑判断和循环执行定义为可分发的 YAML 配置文件（轨迹代码）。
 
 ### 🛠 核心能力
 - **声明式控制流**: 在 YAML 中实现循环 (`for`) 和条件 (`if-else`) 逻辑。
@@ -73,7 +73,7 @@ atac run example/multi_province_center.yaml
 
 ## English
 
-ATaC is a declarative workflow DSL and CLI tool for AI Agents. It codifies tool calls, conditional logic, and iterative loops into distributable YAML "Trajectories."
+ATaC is a declarative trajectory DSL and CLI tool for AI Agents. It codifies tool calls, conditional logic, and iterative loops into distributable YAML "Trajectories."
 
 ### 🛠 Key Features
 
