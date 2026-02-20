@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import '@xyflow/react/dist/style.css';
+
+@theme {
+  --color-primary: #111827; /* Gray-900 for dark industrial look */
+  --color-secondary: #f3f4f6; /* Gray-100 */
+  --color-accent: #3b82f6; /* Blue-500 */
+  
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-mono);
+  background-color: #fafafa;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
