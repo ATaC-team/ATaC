@@ -49,3 +49,15 @@ class ForStep(BaseStep):
     steps: list["Step"]
 
 Step = ActionStep | SetStep | IfStep | ForStep
+
+class MetaDef(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    author: str | None = None
+
+class Trajectory(BaseModel):
+    version: Literal["1.0"]
+    meta: MetaDef | None = None
+    inputs: list[InputDef] = Field(default_factory=list)
+    variables: list[VariableDef] = Field(default_factory=list)
+    steps: list[Step]

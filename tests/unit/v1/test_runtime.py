@@ -40,9 +40,9 @@ async def test_runtime_simple_bash():
 async def test_runtime_variables():
     trajectory = {
         "version": "1.0",
-        "variables": {
-            "greeting": "hello"
-        },
+        "variables": [
+            {"name": "greeting", "type": "string", "value": "hello"}
+        ],
         "steps": [
             {
                 "type": "set",
