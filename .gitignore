@@ -1,0 +1,6 @@
+.venv
+.env
+.agents
+__pycache__
+
+design_docs/

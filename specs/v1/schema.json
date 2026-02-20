@@ -1,0 +1,209 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ATaC Trajectory Schema",
+    "description": "Schema for ATaC (Agentic Trajectory as Code) DSL v1",
+    "type": "object",
+    "required": [
+        "version",
+        "steps"
+    ],
+    "properties": {
+        "version": {
+            "type": "string",
+            "enum": [
+                "1.0"
+            ],
+            "description": "The version of the ATaC DSL spec."
+        },
+        "meta": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "author": {
+                    "type": "string"
+                }
+            }
+        },
+        "inputs": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "type"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "string",
+                            "integer",
+                            "boolean",
+                            "float",
+                            "list",
+                            "object"
+                        ]
+                    },
+                    "default": {}
+                }
+            }
+        },
+        "variables": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "type"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "string",
+                            "integer",
+                            "boolean",
+                            "float",
+                            "list",
+                            "object"
+                        ]
+                    },
+                    "value": {}
+                }
+            }
+        },
+        "steps": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/step"
+            }
+        }
+    },
+    "definitions": {
+        "step": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "timeout": {
+                    "type": [
+                        "integer",
+                        "string"
+                    ]
+                }
+            },
+            "oneOf": [
+                {
+                    "$ref": "#/definitions/action_step"
+                },
+                {
+                    "$ref": "#/definitions/if_step"
+                },
+                {
+                    "$ref": "#/definitions/for_step"
+                },
+                {
+                    "$ref": "#/definitions/set_step"
+                }
+            ]
+        },
+        "action_step": {
+            "properties": {
+                "type": {
+                    "const": "action"
+                },
+                "action": {
+                    "type": "string",
+                    "pattern": "^(mcp|bash)://.*"
+                },
+                "args": {
+                    "type": "object"
+                },
+                "output_to": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "type",
+                "action"
+            ]
+        },
+        "if_step": {
+            "properties": {
+                "type": {
+                    "const": "if"
+                },
+                "condition": {
+                    "type": "string"
+                },
+                "then": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/step"
+                    }
+                },
+                "else": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/step"
+                    }
+                }
+            },
+            "required": [
+                "type",
+                "condition",
+                "then"
+            ]
+        },
+        "for_step": {
+            "properties": {
+                "type": {
+                    "const": "for"
+                },
+                "in": {
+                    "type": "string"
+                },
+                "item": {
+                    "type": "string"
+                },
+                "steps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/step"
+                    }
+                }
+            },
+            "required": [
+                "type",
+                "in",
+                "steps"
+            ]
+        },
+        "set_step": {
+            "properties": {
+                "type": {
+                    "const": "set"
+                },
+                "variables": {
+                    "type": "object"
+                }
+            },
+            "required": [
+                "type",
+                "variables"
+            ]
+        }
+    }
+}
