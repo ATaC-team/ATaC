@@ -22,9 +22,19 @@ class WorkflowRuntime:
         """
         self.executors = executors
         self.trajectory = trajectory
+        
+        # Parse schema definition of variables into a dict
+        vars_def = trajectory.get("variables", [])
+        initial_vars = {}
+        if isinstance(vars_def, list):
+            for v in vars_def:
+                initial_vars[v["name"]] = v.get("value")
+        elif isinstance(vars_def, dict): # Fallback strictly for older test compatibility
+            initial_vars = vars_def
+            
         self.context = WorkflowContext(
             inputs=inputs, 
-            initial_vars=trajectory.get("variables", {})
+            initial_vars=initial_vars
         )
 
     async def run(self) -> dict[str, Any]:
@@ -40,15 +50,27 @@ class WorkflowRuntime:
 
     async def _execute_steps(self, steps: list[dict[str, Any]]):
         for step in steps:
-            # Check condition if present
+            # 1. Evaluate common `if` condition to skip step
             if "if" in step:
                 condition_expr = step["if"]
-                # Evaluate expression. For now, assume it resolves to something truthy/falsy
-                # Note: Security & true expression parsing can be complex, this evaluates as python bool
-                # Ideally Jinja evaluation evaluates to a string, so we'll do a simple comparison.
                 eval_res = self.context.evaluate_expression(condition_expr)
+                if isinstance(eval_res, str) and eval_res.lower() in ("false", "0", ""):
+                    eval_truthy = False
+                else:
+                    eval_truthy = bool(eval_res)
+                    
+                if not eval_truthy:
+                    continue  # Skip this step completely
+                    
+            # 2. Handle specific step types
+            step_type = step.get("type")
+            
+            if step_type == "if":
+                condition_expr = step.get("condition")
+                if not condition_expr:
+                    continue
                 
-                # Jinja will typically output string "True" or "False", let's handle simple cases
+                eval_res = self.context.evaluate_expression(condition_expr)
                 if isinstance(eval_res, str) and eval_res.lower() in ("false", "0", ""):
                     eval_truthy = False
                 else:
@@ -60,9 +82,9 @@ class WorkflowRuntime:
                 else:
                     if "else" in step:
                         await self._execute_steps(step["else"])
-                continue # Skip the rest of this step parsing for 'if' steps
+                continue
                 
-            elif "for" in step:
+            elif step_type == "for":
                  # Minimal 'for' loop implementation
                  if "in" in step and "item" in step and "steps" in step:
                      in_expr = step["in"]

@@ -73,7 +73,8 @@ async def test_runtime_if_condition():
         "version": "1.0",
         "steps": [
             {
-                "if": "${inputs.should_run}",
+                "type": "if",
+                "condition": "${inputs.should_run}",
                 "then": [
                     {
                         "id": "run_echo",

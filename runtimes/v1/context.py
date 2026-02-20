@@ -28,6 +28,12 @@ class WorkflowContext:
         for step_id, output_val in self.outputs.items():
             if step_id not in context: # avoid overwriting 'inputs' etc
                 context[step_id] = {"output": output_val}
+                
+        # Expose variables directly to support ${var_name}
+        for var_name, var_val in self.variables.items():
+            if var_name not in context:
+                context[var_name] = var_val
+                
         return context
 
     def evaluate_expression(self, expr: Any) -> Any:
