@@ -25,9 +25,11 @@ ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和 CLI 工具。�
 ### � 快速开始
 
 1. **安装 ATaC**
+   推荐使用 [uv](https://docs.astral.sh/uv/) 进行隔离安装：
    ```bash
-   pip install atac
+   uv tool install atac
    ```
+   *(或者使用 `pip install atac`)*
 
 2. **配置 MCP 服务 (以高德地图为例)**
    在 `mcp_config.json` 中添加服务并导出环境变量：
@@ -86,9 +88,11 @@ ATaC is a declarative workflow DSL and CLI tool designed specifically for AI Age
 ### � Quick Start
 
 1. **Install ATaC**
+   Recommended installation using [uv](https://docs.astral.sh/uv/):
    ```bash
-   pip install atac
+   uv tool install atac
    ```
+   *(Or use `pip install atac`)*
 
 2. **Configure MCP (Example: Amap Maps)**
    Add the following to your `mcp_config.json` and export the path:
