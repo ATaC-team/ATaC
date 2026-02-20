@@ -11,8 +11,7 @@ ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和 CLI 工具。�
 ### 🚀 核心特性
 - **Agent 原生设计**: 专为 LLM Agent 协作设计。不仅提供人类可读的 YAML，还配套 `SKILL.md` 技能描述文件，让 Agent 能瞬间掌握操作技巧。
 - **声明式 DSL**: 基于 YAML 定义工作流，支持循环 (`for`) 和条件判断 (`if-else`)。
-- **MCP 原生支持**: 通过 `mcp://` 协议无缝集成 Model Context Protocol 服务器。
-- **可视化寻址**: 使用 `atac show` 提供的路径坐标（如 `0.2.then`）实现对嵌套逻辑的精确操控。
+- **多协议执行器**: 原生支持 `mcp://` (Model Context Protocol), `bash://` (系统终端) 以及 `kimi://` (AI Agent 内置工具) 等多种执行协议。
 
 ### 🛠 执行器支持矩阵 (Executor Support)
 | 执行器 (Executor) | 协议 (Scheme) | 状态 (Status) | 说明 |
@@ -22,7 +21,31 @@ ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和 CLI 工具。�
 | **Claude Code** | - | 🚧 待开发 | 欢迎社区贡献内置工具集成 |
 | **Kimi / Moonshot**| `kimi://` | ✅ 已支持 | 支持 Kimi-CLI 所有的内置工具 |
 
-### � 快速开始
+### 🤖 Agent 自主构建流程 (Authoring Flow)
+
+ATaC 的核心价值不仅是运行轨迹，更是让 Agent **拥有自主构建复杂逻辑的能力**。以下是 Agent 如何通过 CLI 命令逐步“录制”出一个轨迹的示例：
+
+```bash
+# 1. 初始化文件
+atac init lookup.yaml --name "Province Search" --desc "Search coordinates"
+
+# 2. 定义输入变量
+atac add-input lookup.yaml --name provinces --type list --default '["四川省"]'
+
+# 3. 构建循环结构
+atac add-for lookup.yaml --in '${inputs.provinces}' --item province
+
+# 4. 在循环内 (索引为 0) 插入工具调用
+atac add-action lookup.yaml --at 0 --id geo --action "mcp://amap-maps/maps_geo" --args '{"address": "${variables.province}"}'
+
+# 5. 预览生成的轨迹结构 (可视化寻址)
+atac show lookup.yaml
+# 输出:
+# 0. for (in=${inputs.provinces}, item=province)
+#   0.0. action (id=geo, tool=mcp://amap-maps/maps_geo)
+```
+
+### 🚀 快速开始
 
 1. **安装 ATaC**
    推荐使用 [uv](https://docs.astral.sh/uv/) 进行隔离安装：
@@ -59,6 +82,27 @@ ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和 CLI 工具。�
    atac run example/multi_province_center.yaml
    ```
 
+### 🔍 轨迹深度解析 (Anatomy)
+
+以 `example/multi_province_center.yaml` 为例，其内部执行流程如下：
+
+```mermaid
+graph TD
+    Start([开始]) --> GetProvinces[读取 inputs.provinces]
+    GetProvinces --> ForLoop{For 每省循环}
+    ForLoop -- 结束 --> End([完成])
+    ForLoop -- 迭代 --> Geo[Step 1: maps_geo<br/>获取地理坐标]
+    Geo --> Regeo[Step 2: maps_regeocode<br/>逆地理编码获取行政区]
+    Regeo --> Log[Step 3: bash echo<br/>输出查询结果]
+    Log --> ForLoop
+```
+
+| 步骤 ID | 类型 | 行为 | 数据流向 |
+| :--- | :--- | :--- | :--- |
+| `geo` | Action | 调用高德地图正向地理编码 | `${variables.province}` -> 坐标 |
+| `regeo` | Action | 调用高德地图逆向地理编码 | `${geo.output...location}` -> 详细地址 |
+| `log` | Action | 执行本地 Bash 命令 | 拼接 `${regeo.output...}` 并打印 |
+
 ### 🤝 贡献指南
 我们欢迎各种形式的贡献！
 1. **Fork** 本仓库并创建特性分支。
@@ -74,8 +118,7 @@ ATaC is a declarative workflow DSL and CLI tool designed specifically for AI Age
 ### 🚀 Key Features
 - **Agent-Centric**: Built for LLM Agents. Every command and structure is designed to be easily manipulated by an AI, complemented by a dedicated `SKILL.md` for instant proficiency.
 - **Declarative DSL**: Define workflows in YAML with built-in logic for `for` loops and `if-else` branches.
-- **MCP Native**: Seamless integration with Model Context Protocol servers via the `mcp://` protocol.
-- **Visual Addressing**: Precise management of nested logic using path coordinates (e.g., `0.2.then`) provided by `atac show`.
+- **Multi-protocol Executors**: Native support for `mcp://` (Model Context Protocol), `bash://` (Shell), and `kimi://` (Agent Built-in Tools).
 
 ### 🛠 Executor Support Matrix
 | Executor | Scheme | Status | Note |
@@ -85,7 +128,31 @@ ATaC is a declarative workflow DSL and CLI tool designed specifically for AI Age
 | **Claude Code** | - | 🚧 Pending | Community contributions are welcome! |
 | **Kimi / Moonshot**| `kimi://` | ✅ Supported | Full support for Kimi-CLI built-in tools |
 
-### � Quick Start
+### 🤖 Agent Authoring Flow
+
+The core value of ATaC is giving Agents the power to **programmatically build complex logic**. Here is how an Agent "records" a trajectory step-by-step using CLI commands:
+
+```bash
+# 1. Initialize the trajectory
+atac init lookup.yaml --name "Province Search" --desc "Search coordinates"
+
+# 2. Define input variables
+atac add-input lookup.yaml --name provinces --type list --default '["Sichuan"]'
+
+# 3. Create a loop structure
+atac add-for lookup.yaml --in '${inputs.provinces}' --item province
+
+# 4. Insert an action step inside the loop (index 0)
+atac add-action lookup.yaml --at 0 --id geo --action "mcp://amap-maps/maps_geo" --args '{"address": "${variables.province}"}'
+
+# 5. Inspect the structure (Visual Addressing)
+atac show lookup.yaml
+# Output:
+# 0. for (in=${inputs.provinces}, item=province)
+#   0.0. action (id=geo, tool=mcp://amap-maps/maps_geo)
+```
+
+### 📦 Quick Start
 
 1. **Install ATaC**
    Recommended installation using [uv](https://docs.astral.sh/uv/):
@@ -121,6 +188,27 @@ ATaC is a declarative workflow DSL and CLI tool designed specifically for AI Age
    ```bash
    atac run example/multi_province_center.yaml
    ```
+
+### 🔍 Trajectory Anatomy
+
+Using `example/multi_province_center.yaml` as an example, here is how the execution flow works:
+
+```mermaid
+graph TD
+    Start([Start]) --> GetProvinces[Load inputs.provinces]
+    GetProvinces --> ForLoop{For Loop}
+    ForLoop -- Done --> End([Finish])
+    ForLoop -- Next --> Geo[Step 1: maps_geo<br/>Get Coordinates]
+    Geo --> Regeo[Step 2: maps_regeocode<br/>Reverse Geocode details]
+    Regeo --> Log[Step 3: bash echo<br/>Print Result]
+    Log --> ForLoop
+```
+
+| Step ID | Type | Behavior | Data Flow |
+| :--- | :--- | :--- | :--- |
+| `geo` | Action | Amap Geocoding | `${variables.province}` -> Coordinates |
+| `regeo` | Action | Amap Reverse Geocoding | `${geo.output...location}` -> Address Details |
+| `log` | Action | Local Bash Command | Format & print `${regeo.output...}` |
 
 ### 🤝 Contributing
 Contributions of any kind are welcome!
