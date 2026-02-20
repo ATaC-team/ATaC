@@ -254,7 +254,7 @@ def show(file_path: str):
 def _show_steps(steps: list[dict], level: int, prefix: str):
     for i, step in enumerate(steps):
         step_type = step.get("type")
-        step_id = step.get("id", f"<no-id>")
+        step_id = step.get("id", "<no-id>")
         
         # Determine label
         if step_type == "action":

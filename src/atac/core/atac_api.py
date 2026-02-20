@@ -95,12 +95,12 @@ class ATaC:
             sub_part = parts[i]
             if sub_part == "then":
                 if not isinstance(target, IfStep):
-                    raise ValueError(f"'.then' only valid on an if-step")
+                    raise ValueError("'.then' only valid on an if-step")
                 current_list = target.then
                 i += 1
             elif sub_part == "else":
                 if not isinstance(target, IfStep):
-                    raise ValueError(f"'.else' only valid on an if-step")
+                    raise ValueError("'.else' only valid on an if-step")
                 if target.else_ is None:
                     target.else_ = []
                 current_list = target.else_

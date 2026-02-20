@@ -1,16 +1,16 @@
 import importlib.util
-import os
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from atac.runtimes.v1.executors.base import ActionExecutor
 from atac.runtimes.v1.models import ParsedAction
 
+
 class KimiExecutor(ActionExecutor):
     """Executor for Kimi-CLI built-in tools (kimi:// scheme)."""
 
-    def __init__(self, kimi_cli_path: Optional[str | Path] = None):
+    def __init__(self, kimi_cli_path: str | Path | None = None):
         if kimi_cli_path:
             self._kimi_cli_path = Path(kimi_cli_path)
         else:
@@ -18,7 +18,7 @@ class KimiExecutor(ActionExecutor):
         self._initialized = False
         self._tools = {}
 
-    def _discover_kimi_cli(self) -> Optional[Path]:
+    def _discover_kimi_cli(self) -> Path | None:
         """Attempt to find the site-packages directory of kimi-cli."""
         # 1. Check PYTHONPATH
         if importlib.util.find_spec("kimi_cli"):
@@ -46,8 +46,8 @@ class KimiExecutor(ActionExecutor):
             sys.path.append(str(self._kimi_cli_path))
             
         try:
-            import kimi_cli
-            import kosong
+            importlib.import_module("kimi_cli")
+            importlib.import_module("kosong")
         except ImportError:
             raise ImportError(
                 "kimi-cli or kosong not found. Please install kimi-cli first. "
@@ -59,9 +59,10 @@ class KimiExecutor(ActionExecutor):
 
     def _setup_mocks(self):
         """Setup mock Runtime and Config for Kimi tools."""
-        from pydantic import BaseModel
-        from kaos.path import KaosPath
         from dataclasses import dataclass, field
+
+        from kaos.path import KaosPath
+        from pydantic import BaseModel
 
         class MockConfig(BaseModel):
             class Services(BaseModel):

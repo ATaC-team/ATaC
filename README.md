@@ -39,8 +39,20 @@ ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和 CLI 工具。�
 ```bash
 pip install atac
 
-# 运行已有的轨迹
-atac run trajs/multi_province_center.yaml
+# 1. 配置高德地图 MCP (在 mcp_config.json 中添加)
+# {
+#   "mcpServers": {
+#     "amap-maps": {
+#       "command": "npx",
+#       "args": ["-y", "@amap/amap-maps-mcp-server"],
+#       "env": { "AMAP_MAPS_API_KEY": "YOUR_API_KEY_HERE" }
+#     }
+#   }
+# }
+export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
+
+# 2. 运行示例轨迹
+atac run example/multi_province_center.yaml
 ```
 
 ### 🤝 贡献指南
@@ -86,8 +98,20 @@ The core value of ATaC lies in its **Skill System**. By providing the `SKILL.md`
 ```bash
 pip install atac
 
-# Run an existing trajectory
-atac run trajs/multi_province_center.yaml
+# 1. Configure Amap MCP (Add to your mcp_config.json)
+# {
+#   "mcpServers": {
+#     "amap-maps": {
+#       "command": "npx",
+#       "args": ["-y", "@amap/amap-maps-mcp-server"],
+#       "env": { "AMAP_MAPS_API_KEY": "YOUR_API_KEY_HERE" }
+#     }
+#   }
+# }
+export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
+
+# 2. Run the example trajectory
+atac run example/multi_province_center.yaml
 ```
 
 ### 🤝 Contributing
