@@ -1,10 +1,10 @@
 import pytest
 
-from src.core.workflow import Workflow
+from src.core.atac_api import ATaC
 
 
 def test_workflow_export_json():
-    wf = Workflow(name="Test WF", description="A demo")
+    wf = ATaC(name="Test WF", description="A demo")
     wf.add_input("greet_target", "string", "world")
     wf.add_variable("attempts", "integer", 0)
     wf.add_action_step("echo_step", "bash://run", args={"command": "echo hello ${inputs.greet_target}"})
@@ -19,7 +19,7 @@ def test_workflow_export_json():
 
 @pytest.mark.asyncio
 async def test_workflow_execute():
-    wf = Workflow()
+    wf = ATaC()
     wf.add_input("word", "string")
     wf.add_action_step(
         "run_echo", 
@@ -28,10 +28,10 @@ async def test_workflow_execute():
     )
     
     wf.validate() # ensure it's valid
-    outputs = await wf.execute({"word": "magic_sdk_word"})
+    outputs = await ATaC.execute(wf.export(), {"word": "magic_sdk_word"})
     
     assert "magic_sdk_word" in outputs["run_echo"]["stdout"]
 
 def test_workflow_unsupported_version():
     with pytest.raises(ValueError, match="Unsupported schema version: 2.0"):
-        Workflow(version="2.0")
+        ATaC(version="2.0")

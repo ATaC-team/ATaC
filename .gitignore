@@ -2,5 +2,5 @@
 .env
 .agents
 __pycache__
-
+*.egg-info
 design_docs/
