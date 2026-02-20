@@ -23,21 +23,24 @@ ATaC 是一个专为 AI Agent 设计的声明式工作流 DSL 和 CLI 工具。�
 | **Kimi / Moonshot**| - | 🚧 待开发 | 欢迎社区贡献内置工具集成 |
 
 ### 📄 Agent 集成 (Skills)
-本实验室的核心价值在于 `SKILL.md`。如果你在开发 Agent 辅助系统，只需将项目中的 `SKILL.md` 提供给 Agent（如作为 System Prompt 的一部分或 Skill 文件夹），它就能理解如何自主构建、调试和运行复杂的任务轨迹。
+如果你在开发 Agent 辅助系统，只需将项目中的 `SKILL.md` 提供给 Agent（如作为 System Prompt 的一部分或 Skill 文件夹），它就能理解如何自主构建、调试和运行复杂的任务轨迹。
 
+> [!TIP]
+> **推荐实践**：
+> ```bash
+> # 1. 将技能文件集成到 Agent
+> cp SKILL.md path/to/your/agent/skills/
+> 
+> # 2. 配置 MCP 服务目录
+> export ATAC_MCP_SERVER_CONFIGS="/path/to/your/mcp/config.json"
+> ```
 
 ### 📦 快速开始
 ```bash
 pip install atac
 
-# 初始化一个新的轨迹
-atac init weather_check.yaml --name "Weather" --description "Check via MCP"
-
-# 添加输入参数
-atac add-input weather_check.yaml --name city --type string --default "Beijing"
-
-# 运行
-atac run weather_check.yaml
+# 运行已有的轨迹
+atac run trajs/multi_province_center.yaml
 ```
 
 ### 🤝 贡献指南
@@ -69,19 +72,22 @@ ATaC is a declarative workflow DSL and CLI tool designed specifically for AI Age
 ### 📄 Agent Integration (Skills)
 The core value of ATaC lies in its **Skill System**. By providing the `SKILL.md` (found in the project root) to your Agent, it gains the immediate ability to autonomously architect, debug, and execute complex task trajectories.
 
+> [!TIP]
+> **Best Practice**:
+> ```bash
+> # 1. Integrate the skill file into your Agent
+> cp SKILL.md path/to/your/agent/skills/
+> 
+> # 2. Configure the MCP service directory
+> export ATAC_MCP_SERVER_CONFIGS="/path/to/your/mcp/config.json"
+> ```
 
 ### 📦 Quick Start
 ```bash
 pip install atac
 
-# Initialize a new trajectory
-atac init weather_check.yaml --name "Weather" --description "Check via MCP"
-
-# Add an input parameter
-atac add-input weather_check.yaml --name city --type string --default "Beijing"
-
-# Execute
-atac run weather_check.yaml
+# Run an existing trajectory
+atac run trajs/multi_province_center.yaml
 ```
 
 ### 🤝 Contributing
