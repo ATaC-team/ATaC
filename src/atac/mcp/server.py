@@ -1,12 +1,12 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
 from atac.cli.main import load_trajectory, save_trajectory
 from atac.core.atac_api import ATaC
+from atac.runtimes.v1.models import DataType, JsonValue
 
 mcp = FastMCP("ATaC")
 
@@ -30,7 +30,7 @@ async def atac_init(file_path: str, name: str = "", description: str = "") -> st
 
 
 @mcp.tool()
-async def atac_add_input(file_path: str, name: str, type: str = "string", default: Any = None) -> str:
+async def atac_add_input(file_path: str, name: str, type: DataType = "string", default: JsonValue = None) -> str:
     """
     Add an input parameter requirement to a trajectory.
     Args:
@@ -47,7 +47,7 @@ async def atac_add_input(file_path: str, name: str, type: str = "string", defaul
 
 
 @mcp.tool()
-async def atac_add_action(file_path: str, id: str, action: str, args: dict[str, Any], at: str | None = None, if_condition: str | None = None) -> str:
+async def atac_add_action(file_path: str, id: str, action: str, args: dict[str, JsonValue], at: str | None = None, if_condition: str | None = None) -> str:
     """
     Add an Action step to the trajectory.
     Args:
@@ -99,7 +99,7 @@ async def atac_add_if(file_path: str, condition: str, at: str | None = None) -> 
 
 
 @mcp.tool()
-async def atac_add_set(file_path: str, variables: dict[str, Any], at: str | None = None) -> str:
+async def atac_add_set(file_path: str, variables: dict[str, JsonValue], at: str | None = None) -> str:
     """
     Add a Set variables step to the trajectory.
     Args:
@@ -126,7 +126,7 @@ async def atac_show(file_path: str) -> str:
 
 
 @mcp.tool()
-async def atac_run(file_path: str, inputs: dict[str, Any] | None = None, config_paths: list[str] | None = None) -> str:
+async def atac_run(file_path: str, inputs: dict[str, JsonValue] | None = None, config_paths: list[str] | None = None) -> str:
     """
     Execute a constructed ATaC trajectory file.
     Args:

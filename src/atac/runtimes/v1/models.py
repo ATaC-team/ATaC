@@ -1,8 +1,9 @@
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 DataType = Literal["string", "integer", "boolean", "float", "list", "object"]
+JsonValue = str | int | float | bool | list | dict | None
 
 class ParsedAction(BaseModel):
     """Structured data parsed from an action URL."""
@@ -14,12 +15,12 @@ class ParsedAction(BaseModel):
 class InputDef(BaseModel):
     name: str
     type: DataType
-    default: Any | None = None
+    default: JsonValue | None = None
 
 class VariableDef(BaseModel):
     name: str
     type: DataType
-    value: Any | None = None
+    value: JsonValue | None = None
 
 class BaseStep(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -30,12 +31,12 @@ class BaseStep(BaseModel):
 class ActionStep(BaseStep):
     type: Literal["action"] = "action"
     action: str
-    args: dict[str, Any] | None = None
+    args: dict[str, JsonValue] | None = None
     output_to: str | None = None
 
 class SetStep(BaseStep):
     type: Literal["set"] = "set"
-    variables: dict[str, Any]
+    variables: dict[str, JsonValue]
 
 class IfStep(BaseStep):
     type: Literal["if"] = "if"
