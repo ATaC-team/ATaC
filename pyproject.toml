@@ -1,7 +1,7 @@
 [project]
 name = "atac"
-version = "0.1.0"
-description = "Agentic Trajectory as Code (ATaC) - A declarative workflow DSL for AI Agents"
+version = "0.1.1"
+description = "An Agent Trajectory Recording and Replay tool. Provides a standardized declarative Trajectory DSL alongside atac cli, atac mcp, and atac skills. Currently supports MCP, Bash, and some Agent built-in tools, recording dynamic Agent tool call trajectories into reusable static ATaC resources."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
