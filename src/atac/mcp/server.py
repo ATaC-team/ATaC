@@ -147,5 +147,23 @@ async def atac_run(file_path: str, inputs: dict[str, JsonValue] | None = None, c
         return f"Execution failed: {str(e)}"
 
 
+@mcp.resource("atac://instructions")
+def atac_instructions() -> str:
+    """Get the usage instructions and examples for the ATaC Agent Skills."""
+    skill_path = Path(__file__).parent.parent.parent.parent / "skills" / "atac" / "SKILL.md"
+    if skill_path.exists():
+        return skill_path.read_text(encoding="utf-8")
+    return "ATaC instructions not found."
+
+
+@mcp.resource("atac://schema")
+def atac_schema() -> str:
+    """Get the JSON schema for ATaC trajectories."""
+    schema_path = Path(__file__).parent.parent / "specs" / "v1" / "schema.json"
+    if schema_path.exists():
+        return schema_path.read_text(encoding="utf-8")
+    return "ATaC schema not found."
+
+
 if __name__ == "__main__":
     mcp.run()
