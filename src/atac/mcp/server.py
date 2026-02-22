@@ -149,8 +149,8 @@ async def atac_run(file_path: str, inputs: dict[str, JsonValue] | None = None, c
 
 @mcp.resource("atac://instructions")
 def atac_instructions() -> str:
-    """Get the usage instructions and examples for the ATaC Agent Skills."""
-    skill_path = Path(__file__).parent.parent.parent.parent / "skills" / "atac" / "SKILL.md"
+    """Get the usage instructions and examples for the ATaC Agent Skills via MCP tools."""
+    skill_path = Path(__file__).parent / "INSTRUCTIONS.md"
     if skill_path.exists():
         return skill_path.read_text(encoding="utf-8")
     return "ATaC instructions not found."
