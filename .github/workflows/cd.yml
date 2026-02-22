@@ -1,0 +1,73 @@
+name: Publish to PyPI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write    # needed for creating a release
+  id-token: write    # required for trusted publishing
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      has_changed: ${{ steps.check.outputs.changed == 'true' }}
+      version: ${{ steps.check.outputs.version }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Check for pyproject.toml version change
+        id: check
+        run: |
+          # If this is the very first commit, assume version changed setup
+          if ! git rev-parse HEAD~1 >/dev/null 2>&1; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            NEW_VERSION=$(grep -E '^version\s*=' pyproject.toml | awk -F'"' '{print $2}')
+            echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Get old and new versions
+          OLD_VERSION=$(git show HEAD~1:pyproject.toml | grep -E '^version\s*=' | awk -F'"' '{print $2}' || true)
+          NEW_VERSION=$(grep -E '^version\s*=' pyproject.toml | awk -F'"' '{print $2}' || true)
+          
+          if [ "$OLD_VERSION" != "$NEW_VERSION" ] && [ ! -z "$NEW_VERSION" ]; then
+            echo "Version changed from $OLD_VERSION to $NEW_VERSION"
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "No version change."
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  publish:
+    needs: check-version
+    if: needs.check-version.outputs.has_changed == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Build package
+        run: uv build
+      
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.check-version.outputs.version }}
+          name: Release v${{ needs.check-version.outputs.version }}
+          generate_release_notes: true
