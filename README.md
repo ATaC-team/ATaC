@@ -79,7 +79,17 @@ atac run example/multi_province_center.yaml
   }
 }
 ```
-
+*如果尚未在全局安装，也可以使用 `uvx` 直接运行（推荐）：*
+```json
+{
+  "mcpServers": {
+    "atac": {
+      "command": "uvx",
+      "args": ["atac", "mcp"]
+    }
+  }
+}
+```
 ---
 
 ## English
@@ -146,6 +156,17 @@ Any MCP-compatible client (like Claude Desktop or Cursor) can connect to ATaC to
     "atac": {
       "command": "atac",
       "args": ["mcp"]
+    }
+  }
+}
+```
+*If not installed globally, you can also use `uvx` directly (Recommended):*
+```json
+{
+  "mcpServers": {
+    "atac": {
+      "command": "uvx",
+      "args": ["atac", "mcp"]
     }
   }
 }
