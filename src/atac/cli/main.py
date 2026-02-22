@@ -283,6 +283,13 @@ def _show_steps(steps: list[dict], level: int, prefix: str):
                 _show_steps(step["else"], level + 2, f"{prefix}{i}.else.")
 
 
+@cli.command()
+def mcp():
+    """Start the ATaC MCP server over stdio."""
+    from atac.mcp.server import mcp as mcp_server
+    mcp_server.run()
+
+
 if __name__ == "__main__":
     cli()
 

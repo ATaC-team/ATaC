@@ -6,7 +6,7 @@
 
 ## 中文
 
-ATaC 是一个专为 AI Agent 设计的声明式轨迹 DSL 和命令行工具。它将 Agent 的工具调用、逻辑判断和循环执行定义为可分发的 YAML 配置文件（轨迹代码）。
+ATaC (Agentic Trajectory as Code) 是一个专为 AI Agent 设计的**轨迹录制与回放工具**。它提供了一套标准化的**声明式智能体轨迹 DSL**，并提供了 **atac cli**、**atac mcp** 和 **atac skills**。目前的轨迹 DSL 已经支持了 MCP、Bash 和部分 Agent 的内置工具，将动态的 Agent 工具调用轨迹录制为可复用的 ATaC 静态资源。
 
 ### 🛠 核心能力
 - **声明式控制流**: 在 YAML 中实现循环 (`for`) 和条件 (`if-else`) 逻辑。
@@ -67,13 +67,24 @@ atac run example/multi_province_center.yaml
 
 ```
 
-
+4. **作为 MCP Server 启动**
+任何支持 MCP 的客户端 (如 Claude Desktop 或 Cursor) 均可将 ATaC 作为工具集连接：
+```json
+{
+  "mcpServers": {
+    "atac": {
+      "command": "atac",
+      "args": ["mcp"]
+    }
+  }
+}
+```
 
 ---
 
 ## English
 
-ATaC is a declarative trajectory DSL and CLI tool for AI Agents. It codifies tool calls, conditional logic, and iterative loops into distributable YAML "Trajectories."
+ATaC (Agentic Trajectory as Code) is an **Agent Trajectory Recording and Replay tool**. It provides a standardized **declarative Trajectory DSL** alongside **atac cli**, **atac mcp**, and **atac skills**. The trajectory DSL currently supports MCP, Bash, and some Agent built-in tools, recording dynamic Agent tool call trajectories into reusable static ATaC resources.
 
 ### 🛠 Key Features
 
@@ -127,7 +138,18 @@ atac run example/multi_province_center.yaml
 
 ```
 
-
+4. **Run as MCP Server**
+Any MCP-compatible client (like Claude Desktop or Cursor) can connect to ATaC to author and run trajectories:
+```json
+{
+  "mcpServers": {
+    "atac": {
+      "command": "atac",
+      "args": ["mcp"]
+    }
+  }
+}
+```
 
 ### License
 
