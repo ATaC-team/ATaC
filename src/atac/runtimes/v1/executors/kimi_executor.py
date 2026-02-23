@@ -11,59 +11,26 @@ class KimiExecutor(ActionExecutor):
     """Executor for Kimi-CLI built-in tools (kimi:// scheme)."""
 
     def __init__(self, kimi_cli_path: str | Path | None = None):
-        if kimi_cli_path:
-            self._kimi_cli_path = Path(kimi_cli_path)
-        else:
-            self._kimi_cli_path = self._discover_kimi_cli()
-        self._initialized = False
         self._tools = {}
-
-    def _discover_kimi_cli(self) -> Path | None:
-        """Attempt to find the site-packages directory of kimi-cli."""
-        # 1. Check PYTHONPATH
-        if importlib.util.find_spec("kimi_cli"):
-            return None # Already in path
-            
-        # 2. Check common uv tool locations on macOS
-        uv_tool_path = Path.home() / ".local/share/uv/tools/kimi-cli"
-        if uv_tool_path.exists():
-            # Try to find site-packages
-            lib_path = uv_tool_path / "lib"
-            if lib_path.exists():
-                # find first subdir in lib (usually python3.x)
-                py_dirs = list(lib_path.glob("python3.*"))
-                if py_dirs:
-                    site_pkgs = py_dirs[0] / "site-packages"
-                    if site_pkgs.exists():
-                        return site_pkgs
-        return None
+        self._mock_config = None
+        self._mock_runtime = None
 
     def _ensure_initialized(self):
-        if self._initialized:
+        if self._mock_config:
             return
             
-        if self._kimi_cli_path:
-            sys.path.append(str(self._kimi_cli_path))
-            
         try:
-            importlib.import_module("kimi_cli")
-            importlib.import_module("kosong")
+            import kimi_cli
         except ImportError:
             raise ImportError(
-                "kimi-cli or kosong not found. Please install kimi-cli first. "
-                "Recommendation: uv tool install --python 3.13 kimi-cli"
+                "kimi-cli not found. To use the KimiExecutor, please install ATaC with the '[kimi]' extra: "
+                "pip install 'atac[kimi]' or 'uv pip install atac[kimi]'"
             )
             
-        self._setup_mocks()
-        self._initialized = True
-
-    def _setup_mocks(self):
-        """Setup mock Runtime and Config for Kimi tools."""
         from dataclasses import dataclass, field
-
-        from kaos.path import KaosPath
         from pydantic import BaseModel
-
+        from kaos.path import KaosPath
+        
         class MockConfig(BaseModel):
             class Services(BaseModel):
                 moonshot_search: Any = None
@@ -96,7 +63,7 @@ class KimiExecutor(ActionExecutor):
             "file/replace": ("kimi_cli.tools.file.replace", "Replace"),
             "file/glob": ("kimi_cli.tools.file.glob", "Glob"),
             "file/grep": ("kimi_cli.tools.file.grep_local", "Grep"),
-            "shell/bash": ("kimi_cli.tools.shell", "Shell"), # Not ideal, but for completeness
+            "shell/bash": ("kimi_cli.tools.shell", "Shell"),
         }
 
         path = f"{action.server_or_cmd}/{action.method}".strip("/")
@@ -105,13 +72,11 @@ class KimiExecutor(ActionExecutor):
 
         module_name, class_name = tool_map[path]
         
-        # Cache tool instances
         if path not in self._tools:
+            import importlib
             module = importlib.import_module(module_name)
             tool_cls = getattr(module, class_name)
             
-            # Instantiate tool
-            # Most kimi tools take 'config' and 'runtime' or just 'runtime'
             import inspect
             sig = inspect.signature(tool_cls)
             init_args = {}
@@ -124,12 +89,10 @@ class KimiExecutor(ActionExecutor):
 
         tool = self._tools[path]
         
-        # Prepare params
         if hasattr(tool, "params"):
             params = tool.params.model_validate(args)
             result = await tool(params)
         else:
-            # For tools using CallableTool instead of CallableTool2
             result = await tool(**args)
 
         if result.is_error:
