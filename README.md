@@ -53,8 +53,19 @@ uv tool install atac  # 推荐
 
 ```
 
+2. **嵌套轨迹调用 (Sub-Workflows)**
+ATaC 原生支持通过 `bash://run` 调用其它 ATaC 文件，从而实现模块化与依赖复用：
+```yaml
+# 在 parent.yaml 中
+steps:
+  - id: call_sub
+    type: action
+    action: bash://run
+    args:
+      command: atac run child.yaml --input city="Beijing"
+```
 
-2. **配置 MCP 环境**
+3. **配置 MCP 环境**
 ```bash
 export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
 
@@ -140,8 +151,19 @@ uv tool install atac
 
 ```
 
+2. **Nested Trajectories (Sub-Workflows)**
+ATaC supports executing other ATaC files natively via the `bash://run` executor, allowing you to build modular, reusable sub-workflows:
+```yaml
+# Inside parent.yaml
+steps:
+  - id: call_sub
+    type: action
+    action: bash://run
+    args:
+      command: atac run child.yaml --input city="Beijing"
+```
 
-2. **MCP Configuration**
+3. **MCP Configuration**
 ```bash
 export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
 

@@ -83,6 +83,14 @@ atac add-action demo.yaml --id log --action "bash://run" \
 atac run demo.yaml
 ```
 
+### 5.1 Nested Execution (Sub-Workflows)
+You can use `bash://run` to invoke another ATaC trajectory natively, enabling modular and nested workflows. Ensure the environment has the correct configurations (like `ATAC_MCP_SERVER_CONFIGS`) since the nested command runs in a sub-shell.
+
+```bash
+atac add-action wrapper.yaml --id nested_call --action "bash://run" \
+  --args '{"command": "atac run inner_task.yaml --input param=val"}'
+```
+
 ## Reference Syntax
 - **Input**: `${inputs.key}`
 - **Variable**: `${key}` (shorthand for `${variables.key}`)

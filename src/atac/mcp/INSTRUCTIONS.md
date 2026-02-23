@@ -33,6 +33,7 @@ When interacting with the ATaC MCP Server, follow this general workflow:
 - **`atac_add_action(file_path: str, id: str, action: str, args: dict, at: str | None, if_condition: str | None)`**
   Adds an action (tool call).
   `action` takes URIs like `mcp://server_name/tool_name`, `bash://run`, or `kimi://web/fetch`.
+  *Note on Nested Trajectories*: You can use `bash://run` with `{"command": "atac run child.yaml"}` to nest another trajectory.
   Example: `atac_add_action("task.yaml", "geo", "mcp://amap-maps/maps_geo", {"address": "${city}"})`
 
 - **`atac_add_for(file_path: str, in_expr: str, item: str, at: str | None)`**
