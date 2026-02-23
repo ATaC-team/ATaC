@@ -1,5 +1,4 @@
-import importlib.util
-import sys
+import importlib
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +19,7 @@ class KimiExecutor(ActionExecutor):
             return
             
         try:
-            import kimi_cli
+            importlib.import_module("kimi_cli")
         except ImportError:
             raise ImportError(
                 "kimi-cli not found. To use the KimiExecutor, please install ATaC with the '[kimi]' extra: "
@@ -28,8 +27,9 @@ class KimiExecutor(ActionExecutor):
             )
             
         from dataclasses import dataclass, field
-        from pydantic import BaseModel
+
         from kaos.path import KaosPath
+        from pydantic import BaseModel
         
         class MockConfig(BaseModel):
             class Services(BaseModel):
