@@ -141,6 +141,34 @@ class ATaC:
         step = IfStep(condition=condition, then=[], else_=[])
         return self.add_step(step, at_path)
 
+    def remove_step(self, at_path: str):
+        """
+        Remove a step located at the specific path.
+        
+        Args:
+            at_path: The exact path to the step to remove (e.g. "0", "0.2.then.1").
+                     It must resolve to a specific index inside a list of steps.
+        """
+        if not at_path:
+            raise ValueError("at_path cannot be empty for remove_step")
+            
+        parts = at_path.split(".")
+        target_idx_str = parts.pop()
+        
+        try:
+            target_idx = int(target_idx_str)
+        except ValueError:
+            raise ValueError(f"Last part of at_path must be an integer index, got '{target_idx_str}'")
+            
+        parent_path = ".".join(parts) if parts else None
+        parent_list = self._resolve_steps_list(parent_path)
+        
+        if target_idx < 0 or target_idx >= len(parent_list):
+            raise ValueError(f"Index {target_idx} out of range for step removal")
+            
+        parent_list.pop(target_idx)
+        return self
+
     def export(self) -> dict[str, Any]:
         """Export the workflow definition as a dictionary."""
         trajectory: dict[str, Any] = {

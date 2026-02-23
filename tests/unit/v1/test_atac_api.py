@@ -35,3 +35,34 @@ async def test_workflow_execute():
 def test_workflow_unsupported_version():
     with pytest.raises(ValueError, match="Unsupported schema version: 2.0"):
         ATaC(version="2.0")
+
+def test_workflow_remove_step():
+    wf = ATaC()
+    wf.add_action_step("step1", "bash://run")
+    wf.add_action_step("step2", "bash://run")
+    wf.add_if_step("condition")
+    
+    # Nested step under if
+    wf.add_action_step("nested1", "bash://run", at_path="2.then")
+    wf.add_action_step("nested2", "bash://run", at_path="2.then")
+    
+    assert len(wf.steps) == 3
+    assert len(wf.steps[2].then) == 2
+    
+    # Remove nested step
+    wf.remove_step("2.then.0")
+    assert len(wf.steps[2].then) == 1
+    assert wf.steps[2].then[0].id == "nested2"
+    
+    # Remove root step
+    wf.remove_step("1")
+    assert len(wf.steps) == 2
+    assert wf.steps[1].type == "if" # Originally step[2]
+    
+    # Remove with invalid path
+    with pytest.raises(ValueError):
+        wf.remove_step("2") # Out of bounds now
+    with pytest.raises(ValueError):
+        wf.remove_step("1.then.5")
+    with pytest.raises(ValueError):
+        wf.remove_step("")

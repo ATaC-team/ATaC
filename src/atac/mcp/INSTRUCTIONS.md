@@ -48,6 +48,10 @@ When interacting with the ATaC MCP Server, follow this general workflow:
   Sets or updates state variables.
   Example: `atac_add_set("task.yaml", {"location": "${geo.output.content[0].text.return[0].location}"})`
 
+- **`atac_remove_step(file_path: str, at: str)`**
+  Removes a specific step by its index path.
+  Example: `atac_remove_step("task.yaml", "0.2.then.1")`
+
 - **`atac_show(file_path: str)`**
   Returns the trajectory JSON structure. Use this to understand current step nested paths.
 

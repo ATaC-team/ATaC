@@ -242,6 +242,22 @@ def add_if(file_path: str, condition: str, at_path: str):
 
 @cli.command()
 @click.argument("file_path", type=click.Path(exists=True))
+@click.option("--at", "at_path", required=True, help="Nested path of the step to remove (e.g. '0' or '0.2.then.1').")
+def rm(file_path: str, at_path: str):
+    """Remove a specific step from a trajectory."""
+    data = load_trajectory(file_path)
+    atac = ATaC.from_dict(data)
+    try:
+        atac.remove_step(at_path)
+        save_trajectory(file_path, atac.export())
+        click.echo(f"Successfully removed step '{at_path}' from {file_path}")
+    except ValueError as e:
+        click.echo(f"Error removing step: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command()
+@click.argument("file_path", type=click.Path(exists=True))
 def show(file_path: str):
     """Show the trajectory structure with indices for navigation."""
     data = load_trajectory(file_path)

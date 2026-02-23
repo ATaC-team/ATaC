@@ -115,6 +115,24 @@ async def atac_add_set(file_path: str, variables: dict[str, JsonValue], at: str 
 
 
 @mcp.tool()
+async def atac_remove_step(file_path: str, at: str) -> str:
+    """
+    Remove a step from the trajectory.
+    Args:
+        file_path: Path to the trajectory file.
+        at: The exact path to the step to remove (e.g. "0", "0.2.then.1").
+    """
+    traj_dict = load_trajectory(file_path)
+    builder = ATaC.from_dict(traj_dict)
+    try:
+        builder.remove_step(at_path=at)
+        save_trajectory(file_path, builder.export())
+        return f"Successfully removed step at path '{at}' from {file_path}"
+    except ValueError as e:
+        return f"Error removing step: {str(e)}"
+
+
+@mcp.tool()
 async def atac_show(file_path: str) -> str:
     """
     Display the current structure and contents of a trajectory file.

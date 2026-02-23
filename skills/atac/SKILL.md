@@ -50,11 +50,15 @@ ATaC integrates Kimi-CLI built-in tools via the `kimi://` scheme. These provide 
 - **`kimi://file/write`**: Write content to local files.
 - **`kimi://file/glob` / `file/grep`**: Powerful file system search.
 
-## 4. Navigating with `--at`
-Use **`atac show <file>`** to view current step indices. The `--at` flag targets where to insert new steps:
+## 4. Navigating and Deleting
+Use **`atac show <file>`** to view current step indices. The `--at` flag targets where to insert or delete steps:
 - **`None`**: Root level (append).
 - **`0`**: Inside the body of step index 0 (if it's a loop).
 - **`0.2.then`**: Step 0 (Loop) -> Step 2 (If) -> inside `then` branch.
+
+- **`rm <file> --at <path>`**
+  Deletes a specific step by its index path.
+  *Example*: `atac rm task.yaml --at 0.2.then.1`
 
 ## 5. End-to-End Example (Amap Maps)
 Build a workflow that geocodes a list of cities and logs results:
