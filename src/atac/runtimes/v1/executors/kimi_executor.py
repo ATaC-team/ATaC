@@ -1,5 +1,4 @@
 import importlib
-from pathlib import Path
 from typing import Any
 
 from atac.runtimes.v1.executors.base import ActionExecutor
