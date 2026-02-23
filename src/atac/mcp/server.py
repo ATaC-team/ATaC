@@ -165,7 +165,7 @@ async def atac_run(file_path: str, inputs: dict[str, JsonValue] | None = None, c
         return f"Execution failed: {str(e)}"
 
 
-@mcp.resource("atac://instructions")
+@mcp.prompt("atac-instructions")
 def atac_instructions() -> str:
     """Get the usage instructions and examples for the ATaC Agent Skills via MCP tools."""
     skill_path = Path(__file__).parent / "INSTRUCTIONS.md"
