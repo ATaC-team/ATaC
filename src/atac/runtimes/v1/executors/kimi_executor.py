@@ -9,7 +9,7 @@ from atac.runtimes.v1.models import ParsedAction
 class KimiExecutor(ActionExecutor):
     """Executor for Kimi-CLI built-in tools (kimi:// scheme)."""
 
-    def __init__(self, kimi_cli_path: str | Path | None = None):
+    def __init__(self):
         self._tools = {}
         self._mock_config = None
         self._mock_runtime = None

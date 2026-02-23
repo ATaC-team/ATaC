@@ -203,8 +203,7 @@ class ATaC:
         trajectory: dict[str, Any] | Trajectory, 
         inputs: dict[str, Any] | None = None,
         executors: dict[str, ActionExecutor] | None = None,
-        mcp_config_paths: list[str] | None = None,
-        kimi_path: str | None = None
+        mcp_config_paths: list[str] | None = None
     ) -> dict[str, Any]:
         """
         Statically execute an ATaC trajectory.
@@ -233,7 +232,7 @@ class ATaC:
             execs = {
                 "bash": BashExecutor(),
                 "mcp": McpExecutor(servers_config=mcp_servers),
-                "kimi": KimiExecutor(kimi_cli_path=kimi_path)
+                "kimi": KimiExecutor()
             }
         
         runtime = WorkflowRuntime(execs, trajectory, inputs)
