@@ -69,9 +69,23 @@ jobs:
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
+      - name: Extract Release Notes
+        id: extract_notes
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          awk -v ver="$VERSION" '
+            /^## \['"$VERSION"'\]/ {p=1; next}
+            /^## \[/ {if (p) exit}
+            p
+          ' CHANGELOG.md > RELEASE_NOTES.txt
+          
+          if [ ! -s RELEASE_NOTES.txt ]; then
+            echo "Release v$VERSION. No specific notes found in CHANGELOG.md." > RELEASE_NOTES.txt
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.check-version.outputs.version }}
           name: Release v${{ needs.check-version.outputs.version }}
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.txt
