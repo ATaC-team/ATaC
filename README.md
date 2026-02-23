@@ -74,7 +74,10 @@ atac run example/multi_province_center.yaml
   "mcpServers": {
     "atac": {
       "command": "atac",
-      "args": ["mcp"]
+      "args": ["mcp"],
+      "env": {
+        "ATAC_MCP_SERVER_CONFIGS": "path/to/mcp_config.json"
+      }
     }
   }
 }
@@ -85,7 +88,10 @@ atac run example/multi_province_center.yaml
   "mcpServers": {
     "atac": {
       "command": "uvx",
-      "args": ["atac", "mcp"]
+      "args": ["atac", "mcp"],
+      "env": {
+        "ATAC_MCP_SERVER_CONFIGS": "path/to/mcp_config.json"
+      }
     }
   }
 }
@@ -155,7 +161,10 @@ Any MCP-compatible client (like Claude Desktop or Cursor) can connect to ATaC to
   "mcpServers": {
     "atac": {
       "command": "atac",
-      "args": ["mcp"]
+      "args": ["mcp"],
+      "env": {
+        "ATAC_MCP_SERVER_CONFIGS": "path/to/mcp_config.json"
+      }
     }
   }
 }
@@ -166,7 +175,10 @@ Any MCP-compatible client (like Claude Desktop or Cursor) can connect to ATaC to
   "mcpServers": {
     "atac": {
       "command": "uvx",
-      "args": ["atac", "mcp"]
+      "args": ["atac", "mcp"],
+      "env": {
+        "ATAC_MCP_SERVER_CONFIGS": "path/to/mcp_config.json"
+      }
     }
   }
 }
