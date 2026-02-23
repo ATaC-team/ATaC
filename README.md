@@ -24,7 +24,9 @@ ATaC (Agentic Trajectory as Code) 是一个专为 AI Agent 设计的**轨迹录�
 | **Kimi / Moonshot**| `kimi://` | ✅ 已支持 | 支持 Kimi-CLI 所有的内置工具 |
 | **Claude Code** | - | 🚧 规划中 | 待集成内置工具集 |
 
-### 🤖 自动化构建示例 (CLI)
+### 🤖 自主构建与流转示例
+
+#### 1. 自动化构建 (CLI)
 
 Agent 可以通过以下指令序列自主生成 `lookup.yaml` 轨迹文件：
 
@@ -44,17 +46,10 @@ atac show lookup.yaml
 
 ```
 
-### 🚀 快速开始
+#### 2. 嵌套轨迹调用 (Sub-Workflows)
 
-1. **安装**
-```bash
-uv tool install atac  # 推荐
-# 或 pip install atac
-
-```
-
-2. **嵌套轨迹调用 (Sub-Workflows)**
 ATaC 原生支持通过 `bash://run` 调用其它 ATaC 文件，从而实现模块化与依赖复用：
+
 ```yaml
 # 在 parent.yaml 中
 steps:
@@ -65,12 +60,21 @@ steps:
       command: atac run child.yaml --input city="Beijing"
 ```
 
-3. **配置 MCP 环境**
+
+### 🚀 快速开始
+
+1. **安装**
+```bash
+uv tool install atac  # 推荐
+# 或 pip install atac
+
+```
+
+2. **配置 MCP 环境**
 ```bash
 export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
 
 ```
-
 
 3. **执行轨迹**
 ```bash
@@ -131,7 +135,9 @@ ATaC (Agentic Trajectory as Code) is an **Agent Trajectory Recording and Replay 
 | **Kimi / Moonshot** | `kimi://` | ✅ Supported | Full Kimi-CLI toolset support |
 | **Claude Code** | - | 🚧 Roadmap | Built-in tool integration pending |
 
-### 🤖 Authoring Flow (CLI)
+### 🤖 Authoring & Workflow Examples
+
+#### 1. Authoring Flow (CLI)
 
 Agents can generate a `lookup.yaml` trajectory via direct CLI commands:
 
@@ -143,16 +149,10 @@ atac add-action lookup.yaml --at 0 --id geo --action "mcp://amap/maps_geo" --arg
 
 ```
 
-### 🚀 Quick Start
+#### 2. Nested Trajectories (Sub-Workflows)
 
-1. **Installation**
-```bash
-uv tool install atac
-
-```
-
-2. **Nested Trajectories (Sub-Workflows)**
 ATaC supports executing other ATaC files natively via the `bash://run` executor, allowing you to build modular, reusable sub-workflows:
+
 ```yaml
 # Inside parent.yaml
 steps:
@@ -163,12 +163,19 @@ steps:
       command: atac run child.yaml --input city="Beijing"
 ```
 
-3. **MCP Configuration**
+### 🚀 Quick Start
+
+1. **Installation**
+```bash
+uv tool install atac
+
+```
+
+2. **MCP Configuration**
 ```bash
 export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
 
 ```
-
 
 3. **Run**
 ```bash
