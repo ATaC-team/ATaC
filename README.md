@@ -21,8 +21,8 @@ ATaC (Agentic Trajectory as Code) 是一个专为 AI Agent 设计的**轨迹录�
 | :--- | :--- | :--- | :--- |
 | **MCP** | `mcp://` | ✅ 已支持 | 原生支持所有标准 MCP 服务 |
 | **Bash** | `bash://` | ✅ 已支持 | 支持本地终端命令及脚本执行 |
-| **Kimi / Moonshot**| `kimi://` | ✅ 已支持 | 支持 Kimi-CLI 所有的内置工具 |
-| **Claude Code** | - | 🚧 规划中 | 待集成内置工具集 |
+| **Kimi / Moonshot**| `kimi://` | ✅ 已支持 | 支持 Kimi-CLI 内置工具（需加锁 `[kimi]` 安装） |
+| **Claude Code** | `claude://` | 🚧 规划中 | 待集成内置工具集 |
 
 ### 🤖 自主构建与流转示例
 
@@ -65,9 +65,10 @@ steps:
 
 1. **安装**
 ```bash
-uv tool install atac  # 推荐
-# 或 pip install atac
+uv tool install atac  # 极简模式（无内置工具包，启动最快）
 
+# 如果需要使用 Kimi 等平台特供执行器的工具，可以额外引入对应扩展包：
+uv tool install "atac[kimi]"
 ```
 
 2. **配置 MCP 环境**
@@ -132,8 +133,8 @@ ATaC (Agentic Trajectory as Code) is an **Agent Trajectory Recording and Replay 
 | --- | --- | --- | --- |
 | **MCP** | `mcp://` | ✅ Supported | Native support for all MCP servers |
 | **Bash** | `bash://` | ✅ Supported | Local shell commands and scripts |
-| **Kimi / Moonshot** | `kimi://` | ✅ Supported | Full Kimi-CLI toolset support |
-| **Claude Code** | - | 🚧 Roadmap | Built-in tool integration pending |
+| **Kimi / Moonshot** | `kimi://` | ✅ Supported | Full Kimi-CLI toolset support (requires `[kimi]` extra) |
+| **Claude Code** | `claude://`| 🚧 Roadmap | Built-in tool integration pending |
 
 ### 🤖 Authoring & Workflow Examples
 
@@ -169,6 +170,8 @@ steps:
 ```bash
 uv tool install atac
 
+# To enable platform-specific built-in tools like Kimi, install with extras:
+uv tool install "atac[kimi]"
 ```
 
 2. **MCP Configuration**
