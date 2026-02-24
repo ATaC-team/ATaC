@@ -50,7 +50,9 @@ ATaC integrates Kimi-CLI built-in tools via the `kimi://` scheme. These provide 
 - **`kimi://file/write`**: Write content to local files.
 - **`kimi://file/glob` / `file/grep`**: Powerful file system search.
 
-## 4. Navigating and Deleting
+## 4. Navigating and Manipulating Workspaces
+Use **`atac list`** to see all available workspaces in the current directory and their descriptions.
+
 Use **`atac show <name>`** to view current step indices. The `--at` flag targets where to insert or delete steps:
 - **`None`**: Root level (append).
 - **`0`**: Inside the body of step index 0 (if it's a loop).

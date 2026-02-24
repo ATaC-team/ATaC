@@ -25,7 +25,7 @@ def load_trajectory(file_or_name: str) -> dict[str, Any]:
     """Helper to load a YAML or JSON trajectory from a workspace or file."""
     path = resolve_workspace_path(file_or_name)
     if not path.exists():
-        click.echo(f"Error: File '{file_path}' does not exist.", err=True)
+        click.echo(f"Error: Workspace or File '{file_or_name}' does not exist.", err=True)
         sys.exit(1)
         
     with open(path, encoding="utf-8") as f:
@@ -113,10 +113,56 @@ def param(name: str):
         click.echo(f"  - {name} [{inp_type}]{default}")
 
 
+def get_workspaces() -> list[dict[str, str]]:
+    """Return a list of all ATaC workspaces in the current directory."""
+    atac_dir = Path.cwd() / ".atac"
+    if not atac_dir.exists() or not atac_dir.is_dir():
+        return []
+        
+    workspaces = []
+    for entry in atac_dir.iterdir():
+        if entry.is_dir():
+            index_yaml = entry / "index.yaml"
+            index_json = entry / "index.json"
+            
+            target = index_yaml if index_yaml.exists() else (index_json if index_json.exists() else None)
+            
+            if target:
+                try:
+                    with open(target, encoding="utf-8") as f:
+                        data = yaml.safe_load(f) if target.suffix in (".yaml", ".yml") else json.load(f)
+                            
+                    name = data.get("meta", {}).get("name", entry.name) if data else entry.name
+                    desc = data.get("meta", {}).get("description", "No description") if data else "No description"
+                    workspaces.append({"directory": entry.name, "name": name, "description": desc})
+                except Exception as e:
+                    workspaces.append({"directory": entry.name, "name": "Error", "description": f"Failed to load: {str(e)}"})
+    return sorted(workspaces, key=lambda x: x["directory"])
+
 @cli.command()
 def schema():
     """Print the JSON schema for ATaC trajectories."""
     click.echo(json.dumps(Trajectory.model_json_schema(), indent=2, ensure_ascii=False))
+
+
+@cli.command(name="list")
+def list_workspaces():
+    """List all ATaC workspaces in the current directory."""
+    workspaces = get_workspaces()
+    if not workspaces:
+        click.echo("No workspaces found in .atac/")
+        return
+        
+    click.echo(f"Found {len(workspaces)} workspace(s):\n")
+    for ws in workspaces:
+        dir_name = ws["directory"]
+        name = ws["name"]
+        desc = ws["description"]
+        # If the directory name equals the meta name, just print it once to avoid redundancy
+        display_name = dir_name if dir_name == name else f"{dir_name} ({name})"
+        click.echo(f"  - {display_name}")
+        click.echo(f"    Description: {desc}")
+        click.echo("")
 
 
 @cli.command()
@@ -261,7 +307,7 @@ def add_if(name: str, condition: str, at_path: str):
 @click.option("--at", "at_path", required=True, help="Nested path of the step to remove (e.g. '0' or '0.2.then.1').")
 def rm(name: str, at_path: str):
     """Remove a specific step from a trajectory."""
-    data = load_trajectory(file_path)
+    data = load_trajectory(name)
     atac = ATaC.from_dict(data)
     try:
         atac.remove_step(at_path)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from atac.cli.main import load_trajectory, save_trajectory
+from atac.cli.main import get_workspaces, load_trajectory, save_trajectory
 from atac.core.atac_api import ATaC
 from atac.runtimes.v1.models import DataType, JsonValue
 
@@ -128,6 +128,17 @@ async def atac_remove_step(name: str, at: str) -> str:
         return f"Successfully removed step at path '{at}' from {name}"
     except ValueError as e:
         return f"Error removing step: {str(e)}"
+
+
+@mcp.tool()
+async def atac_list() -> str:
+    """
+    List all ATaC workspaces available in the current directory.
+    Returns:
+        JSON string representing a list of available workspaces.
+    """
+    workspaces = get_workspaces()
+    return json.dumps(workspaces, indent=2, ensure_ascii=False)
 
 
 @mcp.tool()

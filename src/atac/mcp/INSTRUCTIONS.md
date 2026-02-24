@@ -52,6 +52,10 @@ When interacting with the ATaC MCP Server, follow this general workflow:
   Removes a specific step by its index path.
   Example: `atac_remove_step("search_task", "0.2.then.1")`
 
+- **`atac_list()`**
+  Lists all workspaces in the current directory along with their descriptions.
+  Returns: A JSON array of workspace metadata.
+
 - **`atac_show(name: str)`**
   Returns the trajectory JSON structure. Use this to understand current step nested paths.
 
