@@ -26,8 +26,8 @@
   </g>
 
   <!-- Title Text: ATaC -->
-  <text x="250" y="105" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="72" font-weight="900" fill="#1F2937" letter-spacing="-2">ATaC</text>
+  <text x="250" y="105" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="72" font-weight="900" fill="#FFFFFF" letter-spacing="-2">ATaC</text>
 
   <!-- Subtitle Text: Agentic Trajectory as Code -->
-  <text x="255" y="145" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="500" fill="#6B7280" letter-spacing="1">Agentic Trajectory as Code</text>
+  <text x="255" y="145" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="500" fill="#D1D5DB" letter-spacing="1">Agentic Trajectory as Code</text>
 </svg>
