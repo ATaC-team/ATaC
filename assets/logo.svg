@@ -1,0 +1,33 @@
+<svg width="600" height="200" viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Modern vibrant gradient for the abstract trajectory node -->
+    <linearGradient id="trajGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="50%" stop-color="#EC4899" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background (Optional: can be transparent, kept clear for GitHub Light/Dark mode compatibility) -->
+  <rect width="600" height="200" fill="transparent" />
+
+  <!-- Logo Icon: A stylish node graph representing a 'Trajectory' -->
+  <g transform="translate(60, 50)">
+    <!-- Path connecting nodes -->
+    <path d="M 10 70 Q 50 10 90 50 T 150 20" fill="none" stroke="url(#trajGradient)" stroke-width="6" stroke-linecap="round" filter="url(#glow)" />
+    <!-- Nodes -->
+    <circle cx="10" cy="70" r="10" fill="#4F46E5" />
+    <circle cx="90" cy="50" r="14" fill="#EC4899" />
+    <circle cx="150" cy="20" r="10" fill="#F59E0B" />
+  </g>
+
+  <!-- Title Text: ATaC -->
+  <text x="250" y="105" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="72" font-weight="900" fill="#1F2937" letter-spacing="-2">ATaC</text>
+
+  <!-- Subtitle Text: Agentic Trajectory as Code -->
+  <text x="255" y="145" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="500" fill="#6B7280" letter-spacing="1">Agentic Trajectory as Code</text>
+</svg>

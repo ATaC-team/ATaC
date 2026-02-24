@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="ATaC Logo" width="500"/>
+</p>
+
 # ATaC (Agentic Trajectory as Code)
 
 [![PyPI version](https://img.shields.io/pypi/v/atac?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/atac/)
