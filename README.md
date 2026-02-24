@@ -71,42 +71,26 @@ steps:
 
 ### 🚀 快速开始
 
-1. **安装**
+#### 1. 安装与环境配置
+
 ```bash
-uv tool install atac  # 极简模式（无内置工具包，启动最快）
+uv tool install atac  # 极简模式（推荐）
 
-# 如果需要使用 Kimi 等平台特供执行器的工具，可以额外引入对应扩展包：
-uv tool install "atac[kimi]"
+# 挂载您的任意外部 MCP 服务器环境配置：
+# (支持配置多个配置文件路径，使用逗号分隔)
+export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config_1.json,path/to/mcp_config_2.json"
 ```
 
-2. **配置 MCP 环境**
+#### 2. 以 Skills 形式引入
+将项目中的 `skills/atac` 目录复制到您 Agent 工作区的 `skills/` 目录下即可激活：
+
 ```bash
-export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
-
+cp -r path/to/ATaC/skills/atac ./skills/
 ```
 
-3. **执行轨迹**
-```bash
-atac run example/multi_province_center.yaml
+#### 3. 以 MCP Server 形式引入
+在支持 MCP 协议的应用程序配置中添加 ATaC：
 
-```
-
-4. **作为 MCP Server 启动**
-任何支持 MCP 的客户端 (如 Claude Desktop 或 Cursor) 均可将 ATaC 作为工具集连接：
-```json
-{
-  "mcpServers": {
-    "atac": {
-      "command": "atac",
-      "args": ["mcp"],
-      "env": {
-        "ATAC_MCP_SERVER_CONFIGS": "path/to/mcp_config.json"
-      }
-    }
-  }
-}
-```
-*如果尚未在全局安装，也可以使用 `uvx` 直接运行（推荐）：*
 ```json
 {
   "mcpServers": {
@@ -114,7 +98,7 @@ atac run example/multi_province_center.yaml
       "command": "uvx",
       "args": ["atac", "mcp"],
       "env": {
-        "ATAC_MCP_SERVER_CONFIGS": "path/to/mcp_config.json"
+        "ATAC_MCP_SERVER_CONFIGS": "path/to/mcp_config_1.json,path/to/mcp_config_2.json"
       }
     }
   }
@@ -172,42 +156,26 @@ steps:
 
 ### 🚀 Quick Start
 
-1. **Installation**
+#### 1. Installation & Environment Setup
+
 ```bash
-uv tool install atac
+uv tool install atac  # Minimal installation (Recommended)
 
-# To enable platform-specific built-in tools like Kimi, install with extras:
-uv tool install "atac[kimi]"
+# Mount your external MCP server configurations:
+# (Multiple config files are supported, separate paths with a comma)
+export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config_1.json,path/to/mcp_config_2.json"
 ```
 
-2. **MCP Configuration**
+#### 2. Introduce as Skills
+Copy the `skills/atac` directory from this repository into your Agent workspace's `skills/` directory:
+
 ```bash
-export ATAC_MCP_SERVER_CONFIGS="path/to/mcp_config.json"
-
+cp -r path/to/ATaC/skills/atac ./skills/
 ```
 
-3. **Run**
-```bash
-atac run example/multi_province_center.yaml
+#### 3. Introduce as an MCP Server
+Add ATaC to the configuration of any MCP-compatible application:
 
-```
-
-4. **Run as MCP Server**
-Any MCP-compatible client (like Claude Desktop or Cursor) can connect to ATaC to author and run trajectories:
-```json
-{
-  "mcpServers": {
-    "atac": {
-      "command": "atac",
-      "args": ["mcp"],
-      "env": {
-        "ATAC_MCP_SERVER_CONFIGS": "path/to/mcp_config.json"
-      }
-    }
-  }
-}
-```
-*If not installed globally, you can also use `uvx` directly (Recommended):*
 ```json
 {
   "mcpServers": {
@@ -215,7 +183,7 @@ Any MCP-compatible client (like Claude Desktop or Cursor) can connect to ATaC to
       "command": "uvx",
       "args": ["atac", "mcp"],
       "env": {
-        "ATAC_MCP_SERVER_CONFIGS": "path/to/mcp_config.json"
+        "ATAC_MCP_SERVER_CONFIGS": "path/to/mcp_config_1.json,path/to/mcp_config_2.json"
       }
     }
   }
