@@ -36,7 +36,7 @@ ATaC (Agentic Trajectory as Code) 提供了一套专为 AI Agent 设计的**声�
 
 #### 1. 自动化构建 (CLI)
 
-Agent 可以通过以下指令序列自主生成 `lookup.yaml` 轨迹文件：
+Agent 可以通过以下指令序列自主生成 `GeoSearch` 工作区轨迹：
 
 ```bash
 # 1. 初始化并定义输入变量 (自动创建 .atac/GeoSearch 目录结构)
@@ -130,7 +130,7 @@ ATaC (Agentic Trajectory as Code) provides a set of **declarative trajectory rec
 
 #### 1. Authoring Flow (CLI)
 
-Agents can generate a `lookup.yaml` trajectory via direct CLI commands:
+Agents can generate a `GeoSearch` trajectory workspace via direct CLI commands:
 
 ```bash
 # Create a new workspace at .atac/GeoSearch
