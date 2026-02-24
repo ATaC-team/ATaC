@@ -2,7 +2,7 @@
   <img src="assets/logo.svg" alt="ATaC Logo" width="500"/>
 </p>
 
-# ATaC (Agentic Trajectory as Code)
+# ATaC — Agentic Trajectory as Code
 
 [![PyPI version](https://img.shields.io/pypi/v/atac?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/atac/)
 [![Python versions](https://img.shields.io/pypi/pyversions/atac?logo=python&logoColor=white)](https://pypi.org/project/atac/)
@@ -16,12 +16,13 @@
 
 ## 中文
 
-ATaC (Agentic Trajectory as Code) 是一个专为 AI Agent 设计的**轨迹录制与回放工具**。它提供了一套标准化的**声明式智能体轨迹 DSL**，并提供了 **atac cli**、**atac mcp** 和 **atac skills**。目前的轨迹 DSL 已经支持了 MCP、Bash 和部分 Agent 的内置工具，将动态的 Agent 工具调用轨迹录制为可复用的 ATaC 静态资源。
+ATaC (Agentic Trajectory as Code) 提供了一套专为 AI Agent 设计的**声明式轨迹录制与回放接口**。它作为一个轻量级的协议载体，通过统一的协议总线（Protocol Bus）无缝接入标准 MCP 服务，以及市面上各大 Agent 应用与框架的原生内置工具。通过 ATaC，开发者能将智能体运行时的动态调用流，固化为可流转、可复用、可精确重构的静态代码资产。
 
 ### 🛠 核心能力
-- **声明式控制流**: 在 YAML 中实现循环 (`for`) 和条件 (`if-else`) 逻辑。
-- **多协议支持**: 统一驱动 `mcp://` (Model Context Protocol), `bash://` (Shell) 及 `kimi://` (Kimi 内置工具)。
-- **Agent 编程接口**: 提供 CLI 指令，使 LLM 能够通过命令行自主构建、修改和执行复杂工作流。
+- **轨迹录制**: 将智能体非结构化的工具调用历史，持久化为标准化的静态 `.yaml` 资产。
+- **精确回放**: 搭载轻量化执行引擎，按序、精确还原复杂环境下的工具执行序列。
+- **声明式控制流**: 在 YAML 轨迹中原生支持循环 (`for`) 和条件 (`if-else`) 逻辑编排。
+- **多协议总线**: 统一调度 `mcp://` (Model Context Protocol)、`bash://` 等多源执行环境。
 
 ### 📋 执行器兼容性
 | 执行器 | 协议 | 状态 | 说明 |
@@ -123,13 +124,14 @@ atac run example/multi_province_center.yaml
 
 ## English
 
-ATaC (Agentic Trajectory as Code) is an **Agent Trajectory Recording and Replay tool**. It provides a standardized **declarative Trajectory DSL** alongside **atac cli**, **atac mcp**, and **atac skills**. The trajectory DSL currently supports MCP, Bash, and some Agent built-in tools, recording dynamic Agent tool call trajectories into reusable static ATaC resources.
+ATaC (Agentic Trajectory as Code) provides a set of **declarative trajectory recording and replay interfaces** tailored specifically for AI Agents. Acting as a lightweight routing layer, it employs a unified protocol bus capable of seamlessly connecting to strictly standardized MCP servers alongside the proprietary built-in tools of various Agent applications and frameworks. Through ATaC, developers can persist an agent's dynamic execution flow into modular, reusable, and deterministic static code assets.
 
 ### 🛠 Key Features
 
-* **Declarative Control Flow**: Native `for` and `if-else` support within YAML.
-* **Multi-protocol Support**: Unified execution for `mcp://`, `bash://`, and `kimi://`.
-* **Agentic Authoring**: CLI-first design allowing LLMs to programmatically build, refine, and execute their own workflows.
+* **Trajectory Recording**: Persists unstructured agent tool invocations into standardized, static `.yaml` assets.
+* **Precise Replay**: Powered by a lightweight runtime engine to predictably execute complex tool sequences.
+* **Declarative Control Flow**: Native `for` loop and `if-else` condition routing directly within the YAML schema.
+* **Multi-protocol Bus**: Unified execution pipeline bridging `mcp://`, `bash://`, and various platform APIs.
 
 ### 📋 Executor Support
 
