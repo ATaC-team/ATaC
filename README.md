@@ -39,18 +39,18 @@ ATaC (Agentic Trajectory as Code) 提供了一套专为 AI Agent 设计的**声�
 Agent 可以通过以下指令序列自主生成 `lookup.yaml` 轨迹文件：
 
 ```bash
-# 1. 初始化并定义输入变量
-atac init lookup.yaml --name "GeoSearch"
-atac add-input lookup.yaml --name provinces --type list
+# 1. 初始化并定义输入变量 (自动创建 .atac/GeoSearch 目录结构)
+atac init GeoSearch --description "GeoSearch workflow"
+atac add-input GeoSearch --name provinces --type list
 
 # 2. 注入逻辑结构 (For 循环)
-atac add-for lookup.yaml --in '${inputs.provinces}' --item province
+atac add-for GeoSearch --in '${inputs.provinces}' --item province
 
 # 3. 在指定位置插入动作 (支持路径寻址)
-atac add-action lookup.yaml --at 0 --id geo --action "mcp://amap/maps_geo" --args '{"address": "${variables.province}"}'
+atac add-action GeoSearch --at 0 --id geo --action "mcp://amap/maps_geo" --args '{"address": "${variables.province}"}'
 
 # 4. 预览生成的结构
-atac show lookup.yaml
+atac show GeoSearch
 
 ```
 
@@ -59,13 +59,13 @@ atac show lookup.yaml
 ATaC 原生支持通过 `bash://run` 调用其它 ATaC 文件，从而实现模块化与依赖复用：
 
 ```yaml
-# 在 parent.yaml 中
+# 在 parent 轨迹的 index.yaml 中
 steps:
   - id: call_sub
     type: action
     action: bash://run
     args:
-      command: atac run child.yaml --input city="Beijing"
+      command: atac run child_workspace --input city="Beijing"
 ```
 
 
@@ -133,10 +133,11 @@ ATaC (Agentic Trajectory as Code) provides a set of **declarative trajectory rec
 Agents can generate a `lookup.yaml` trajectory via direct CLI commands:
 
 ```bash
-atac init lookup.yaml --name "GeoSearch"
-atac add-input lookup.yaml --name provinces --type list
-atac add-for lookup.yaml --in '${inputs.provinces}' --item province
-atac add-action lookup.yaml --at 0 --id geo --action "mcp://amap/maps_geo" --args '{"address": "${variables.province}"}'
+# Create a new workspace at .atac/GeoSearch
+atac init GeoSearch --description "GeoSearch workflow"
+atac add-input GeoSearch --name provinces --type list
+atac add-for GeoSearch --in '${inputs.provinces}' --item province
+atac add-action GeoSearch --at 0 --id geo --action "mcp://amap/maps_geo" --args '{"address": "${variables.province}"}'
 
 ```
 
@@ -145,13 +146,13 @@ atac add-action lookup.yaml --at 0 --id geo --action "mcp://amap/maps_geo" --arg
 ATaC supports executing other ATaC files natively via the `bash://run` executor, allowing you to build modular, reusable sub-workflows:
 
 ```yaml
-# Inside parent.yaml
+# Inside parent workspace's index.yaml
 steps:
   - id: call_sub
     type: action
     action: bash://run
     args:
-      command: atac run child.yaml --input city="Beijing"
+      command: atac run child_workspace --input city="Beijing"
 ```
 
 ### 🚀 Quick Start

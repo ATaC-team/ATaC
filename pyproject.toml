@@ -1,6 +1,6 @@
 [project]
 name = "atac"
-version = "0.1.5"
+version = "0.2.0"
 description = "An Agent Trajectory Recording and Replay tool. Provides a standardized declarative Trajectory DSL alongside atac cli, atac mcp, and atac skills. Currently supports MCP, Bash, and some Agent built-in tools, recording dynamic Agent tool call trajectories into reusable static ATaC resources."
 readme = "README.md"
 requires-python = ">=3.13"

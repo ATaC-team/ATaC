@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.0] - 2026-02-25
+
+### Added / 新增
+- **[CLI]** Added the new `atac list` command to display all instantiated trajectory workspaces and their descriptions in the `.atac/` directory.
+- **[CLI]** 新增了 `atac list` 命令，用于快速列出当前目录（`.atac/`）下所有已实例化的工作区及其描述。
+- **[MCP]** Added the new `atac_list` tool to the MCP server to allow AI Agents to dynamically discover available workspace trajectories.
+- **[MCP]** MCP 服务端新增了 `atac_list` 工具，以便于 AI 智能体能动态嗅探并发现当前目录下所有可用的工作区轨迹。
+
+### Changed / 变更
+- **[Architecture]** Transitioned from single-file trajectory scripts to a full-fledged `.atac/<workspace_name>/index.yaml` workspace architecture.
+- **[Architecture]** 彻底告别了早期的单文件脚本模式，正式引入了结构化的 `.atac/<workspace_name>/index.yaml` 工作区架构。
+- **[CLI & MCP]** All CLI commands (`init`, `run`, `show`, `add-*`, `rm`) and MCP tools (`atac_add_*`, `atac_show`, `atac_run`) now accept intuitive workspace `name` wrappers instead of strict physical file paths. Legacy `.yaml` paths are still backward compatible.
+- **[CLI & MCP]** 所有 CLI 指令和 MCP 工具全面调整为接收并解析抽象的 `name`（工作区名称），大幅降低了 Agent 认知负担和文件路径拼写出错的概率，同时依旧向下兼容传统的 `.yaml` 文件路径传参。
+
 ## [0.1.5] - 2026-02-23
 
 ### Changed / 变更
