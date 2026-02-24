@@ -1,5 +1,11 @@
 # ATaC (Agentic Trajectory as Code)
 
+[![PyPI version](https://img.shields.io/pypi/v/atac?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/atac/)
+[![Python versions](https://img.shields.io/pypi/pyversions/atac?logo=python&logoColor=white)](https://pypi.org/project/atac/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI Status](https://github.com/ATaC-team/ATaC/actions/workflows/cd.yml/badge.svg)](https://github.com/ATaC-team/ATaC/actions)
+
+
 [English](#english) | [中文](#中文)
 
 ---
