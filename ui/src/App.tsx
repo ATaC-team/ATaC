@@ -31,7 +31,7 @@ function App() {
   const [trajVariables, setTrajVariables] = useState<any>({});
 
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
-  const [mcpConfigPath, setMcpConfigPath] = useState<string>('');
+  const [mcpConfigPath, setMcpConfigPath] = useState<string[]>([]);
   const [workspacePath, setWorkspacePath] = useState<string>('');
 
   const [isRunning, setIsRunning] = useState(false);
@@ -86,8 +86,12 @@ function App() {
           let shouldTriggerLoad = false;
           let newWorkspacePath = workspacePath;
 
-          if (config.mcpConfigPath && !mcpConfigPath) {
-            setMcpConfigPath(config.mcpConfigPath);
+          if (config.mcpConfigPath) {
+            if (Array.isArray(config.mcpConfigPath)) {
+              setMcpConfigPath(config.mcpConfigPath);
+            } else if (typeof config.mcpConfigPath === 'string') {
+              setMcpConfigPath([config.mcpConfigPath]);
+            }
           }
           if (config.workspaceDir && !workspacePath) {
             const defaultAtacPath = config.workspaceDir + '/.atac';
@@ -156,14 +160,40 @@ function App() {
           <div className="space-y-2">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Configuration</h2>
             <div>
-              <label className="text-xs font-medium text-gray-700 block mb-1">MCP Server ConfigsPath</label>
-              <input
-                type="text"
-                placeholder="/path/to/mcp_config.json"
-                value={mcpConfigPath}
-                onChange={e => setMcpConfigPath(e.target.value)}
-                className="w-full text-xs px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white shadow-sm"
-              />
+              <div>
+                <label className="text-xs font-medium text-gray-700 block mb-1">MCP Server ConfigsPath</label>
+                {mcpConfigPath.map((path, index) => (
+                  <div key={index} className="flex space-x-2 mb-2">
+                    <input
+                      type="text"
+                      placeholder="/path/to/mcp_config.json"
+                      value={path}
+                      onChange={e => {
+                        const newPaths = [...mcpConfigPath];
+                        newPaths[index] = e.target.value;
+                        setMcpConfigPath(newPaths);
+                      }}
+                      className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white shadow-sm"
+                    />
+                    <button
+                      onClick={() => {
+                        const newPaths = mcpConfigPath.filter((_, i) => i !== index);
+                        setMcpConfigPath(newPaths);
+                      }}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium px-2"
+                      title="Remove path"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setMcpConfigPath([...mcpConfigPath, ''])}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center mt-1"
+                >
+                  + Add Config Path
+                </button>
+              </div>
             </div>
           </div>
 
