@@ -14,10 +14,6 @@ dependencies = [
     "pyyaml>=6.0.3",
 ]
 
-[project.optional-dependencies]
-kimi = ["kimi-cli>=0.41"]
-all = ["kimi-cli>=0.41"]
-
 [tool.ruff.lint]
 select = ["C4", "E", "F", "I", "PERF", "UP"]
 ignore = ["PERF203", "E501"]

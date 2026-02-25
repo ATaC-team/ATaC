@@ -29,7 +29,6 @@ ATaC (Agentic Trajectory as Code) 提供了一套专为 AI Agent 设计的**声�
 | :--- | :--- | :--- | :--- |
 | **MCP** | `mcp://` | ✅ 已支持 | 原生支持所有标准 MCP 服务 |
 | **Bash** | `bash://` | ✅ 已支持 | 支持本地终端命令及脚本执行 |
-| **Kimi / Moonshot**| `kimi://` | ✅ 已支持 | 支持 Kimi-CLI 内置工具（需加锁 `[kimi]` 安装） |
 | **Claude Code** | `claude://` | 🚧 规划中 | 待集成内置工具集 |
 
 ### 🤖 自主构建与流转示例

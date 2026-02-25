@@ -3,7 +3,6 @@ from typing import Any
 
 from atac.runtimes.v1.executors.base import ActionExecutor
 from atac.runtimes.v1.executors.bash_executor import BashExecutor
-from atac.runtimes.v1.executors.kimi_executor import KimiExecutor
 from atac.runtimes.v1.executors.mcp_executor import McpExecutor
 from atac.runtimes.v1.models import (
     ActionStep,
@@ -232,7 +231,6 @@ class ATaC:
             execs = {
                 "bash": BashExecutor(),
                 "mcp": McpExecutor(servers_config=mcp_servers),
-                "kimi": KimiExecutor()
             }
         
         runtime = WorkflowRuntime(execs, trajectory, inputs)

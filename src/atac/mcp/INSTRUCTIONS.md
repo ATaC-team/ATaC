@@ -32,7 +32,7 @@ When interacting with the ATaC MCP Server, follow this general workflow:
 
 - **`atac_add_action(name: str, id: str, action: str, args: dict, at: str | None, if_condition: str | None)`**
   Adds an action (tool call).
-  `action` takes URIs like `mcp://server_name/tool_name`, `bash://run`, or `kimi://web/fetch`.
+  `action` takes URIs like `mcp://server_name/tool_name` or `bash://run`.
   *Note on Nested Trajectories*: You can use `bash://run` with `{"command": "atac run child_workspace"}` to nest another trajectory.
   Example: `atac_add_action("search_task", "geo", "mcp://amap-maps/maps_geo", {"address": "${city}"})`
 
