@@ -24,8 +24,3 @@ steps:
     action: mcp://amap-maps/maps_regeocode
     args:
       location: ${geo.output.content[0].text.return[0].location}
-  - id: log
-    type: action
-    action: bash://run
-    args:
-      command: 'echo "${variables.province} Center: ${regeo.output.content[0].text.provice}${regeo.output.content[0].text.city}${regeo.output.content[0].text.district}"'
