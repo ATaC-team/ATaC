@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - 2026-02-25
+
+### 中文
+
+#### 移除
+- **[Integration]** 暂时移除了对于 `kimi-cli` 和 `KimiExecutor` 的原生融合支持。由于底层的 `mcp` 与 `kosong` 构成了无法调和的钻石依赖冲突（Diamond Dependency Conflict），我们决定先保证 ATaC 主干环境的纯洁性。
+- **[Roadmap]** 后续我们会抛弃强耦合引入，改为设计一套全新的独立 Worker/Plugin 架构，从而安全、隔离地接入各大主流 Agent SDK（如 Kimi、Claude 等）的原生内置工具。
+
+### English
+
+#### Removed
+- **[Integration]** Temporarily removed the `KimiExecutor` and `kimi-cli` optional dependencies due to deep unresolvable dependency conflicts with the underlying `kosong` and `mcp` libraries. 
+- **[Roadmap]** We will introduce a brand-new, robust Plugin/Worker architecture in the future to natively support various AI Agent SDK built-in tools (including Kimi and Claude) without polluting the core ATaC dependency tree.
+
+
+
+
 ## [0.2.0] - 2026-02-25
 
 ### Added / 新增
