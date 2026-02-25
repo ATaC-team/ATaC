@@ -1,22 +1,21 @@
-<p align="center">
-  <img src="assets/logo.svg" alt="ATaC Logo" width="500"/>
-</p>
+<div align="center">
 
-# ATaC — Agentic Trajectory as Code
+<img src="assets/logo.svg" alt="ATaC Logo" width="500"/>
 
 [![PyPI version](https://img.shields.io/pypi/v/atac?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/atac/)
 [![Python versions](https://img.shields.io/pypi/pyversions/atac?logo=python&logoColor=white)](https://pypi.org/project/atac/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI Status](https://github.com/ATaC-team/ATaC/actions/workflows/cd.yml/badge.svg)](https://github.com/ATaC-team/ATaC/actions)
 
-
 [English](#english) | [中文](#中文)
 
----
+</div>
+
+
 
 ## 中文
 
-ATaC (Agentic Trajectory as Code) 提供了一套专为 AI Agent 设计的**声明式轨迹录制与回放接口**。它作为一个轻量级的协议载体，通过统一的协议总线（Protocol Bus）无缝接入标准 MCP 服务，以及市面上各大 Agent 应用与框架的原生内置工具。通过 ATaC，开发者能将智能体运行时的动态调用流，固化为可流转、可复用、可精确重构的静态代码资产。
+ATaC (Agentic Trajectory as Code) 提供了一套专为 AI Agent 设计的**声明式轨迹录制与回放接口**。通过 ATaC，开发者能将智能体运行时的动态调用流，固化为可流转、可复用、可精确重构的静态代码资产。
 
 ### 🛠 核心能力
 - **轨迹录制**: 将智能体非结构化的工具调用历史，持久化为标准化的静态 `.yaml` 资产。
@@ -107,7 +106,7 @@ cp -r path/to/ATaC/skills/atac ./skills/
 
 ## English
 
-ATaC (Agentic Trajectory as Code) provides a set of **declarative trajectory recording and replay interfaces** tailored specifically for AI Agents. Acting as a lightweight routing layer, it employs a unified protocol bus capable of seamlessly connecting to strictly standardized MCP servers alongside the proprietary built-in tools of various Agent applications and frameworks. Through ATaC, developers can persist an agent's dynamic execution flow into modular, reusable, and deterministic static code assets.
+ATaC (Agentic Trajectory as Code) provides a set of **declarative trajectory recording and replay interfaces** tailored specifically for AI Agents. Through ATaC, developers can persist an agent's dynamic execution flow into modular, reusable, and deterministic static code assets.
 
 ### 🛠 Key Features
 
@@ -122,7 +121,6 @@ ATaC (Agentic Trajectory as Code) provides a set of **declarative trajectory rec
 | --- | --- | --- | --- |
 | **MCP** | `mcp://` | ✅ Supported | Native support for all MCP servers |
 | **Bash** | `bash://` | ✅ Supported | Local shell commands and scripts |
-| **Kimi / Moonshot** | `kimi://` | ✅ Supported | Full Kimi-CLI toolset support (requires `[kimi]` extra) |
 | **Claude Code** | `claude://`| 🚧 Roadmap | Built-in tool integration pending |
 
 ### 🤖 Authoring & Workflow Examples
