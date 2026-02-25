@@ -247,6 +247,15 @@ class ATaC:
     def load_trajectory(file_or_name: str) -> dict[str, Any]:
         """Helper to load a YAML or JSON trajectory from a workspace or file."""
         import sys
+
+        import yaml
+        
+        if file_or_name == "-":
+            # Read from stdin
+            content = sys.stdin.read()
+            # Try to parse as YAML (JSON is a subset of YAML)
+            return yaml.safe_load(content)
+            
         path = ATaC.resolve_workspace_path(file_or_name)
         if not path.exists():
             print(f"Error: Workspace or File '{file_or_name}' does not exist.", file=sys.stderr)
@@ -254,7 +263,6 @@ class ATaC:
             
         with open(path, encoding="utf-8") as f:
             if path.suffix in (".yaml", ".yml"):
-                import yaml
                 return yaml.safe_load(f)
             return json.load(f)
 

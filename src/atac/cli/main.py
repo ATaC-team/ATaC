@@ -16,8 +16,109 @@ def cli():
 
 
 @cli.command()
+@click.argument("pairs", nargs=-1)
+def config(pairs: tuple[str, ...]):
+    """Set workspace configuration values using k=v format (e.g. mcp_config=path1 mcp_config=path2)."""
+    if not pairs:
+        click.echo("Usage: atac config key=value [key=value ...]")
+        sys.exit(1)
+        
+    atac_dir = Path(".atac")
+    atac_dir.mkdir(exist_ok=True)
+    
+    config_path = atac_dir / "atac.json"
+    data = {}
+    if config_path.exists():
+        try:
+            with open(config_path, encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            pass
+            
+    for pair in pairs:
+        if "=" not in pair:
+            click.echo(f"Error: Invalid configuration format '{pair}'. Expected key=value.", err=True)
+            sys.exit(1)
+            
+        key, value = pair.split("=", 1)
+        
+        # If key already exists, convert to list or append
+        if key in data:
+            if isinstance(data[key], list):
+                # Only append if not duplicated
+                if value not in data[key]:
+                    data[key].append(value)
+            elif data[key] != value:
+                # Convert scalar to list
+                data[key] = [data[key], value]
+        else:
+            data[key] = value
+    
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        
+    click.echo("Saved configuration to .atac/atac.json")
+
+
+
+@cli.command()
+def ui():
+    """Launch the ATaC Visual Builder UI."""
+    import os
+    import subprocess
+
+    import atac
+    
+    # Locate the ui directory relative to the atac package root
+    # atac is in src/atac, ui is in the top-level repo directory.
+    # However, depending on installation (pip install -e . vs normal install),
+    # the location varies. For this implementation, assume it is installed
+    # with the project root structure where `ui` is adjacent to `src`
+    
+    atac_pkg_dir = Path(atac.__file__).parent
+    # Check if we are in the source tree: src/atac -> parent is src -> parent is root
+    repo_root = atac_pkg_dir.parent.parent
+    ui_dir = repo_root / "ui"
+    
+    if not ui_dir.exists() or not (ui_dir / "package.json").exists():
+        click.echo("Error: Could not locate the 'ui' directory. Please ensure ATaC is installed correctly with the UI components.", err=True)
+        sys.exit(1)
+        
+    cwd = os.getcwd()
+    env = os.environ.copy()
+    env["ATAC_WORKSPACE_DIR"] = cwd
+    
+    click.echo(f"Starting ATaC UI for workspace directory: {cwd}")
+    click.echo("Running backend server and Vite frontend...")
+    
+    try:
+        # Start the backend server
+        backend_proc = subprocess.Popen(
+            ["node", "server.mjs"],
+            cwd=str(ui_dir),
+            env=env
+        )
+        
+        # Start the frontend server
+        frontend_proc = subprocess.Popen(
+            ["npm", "run", "dev"],
+            cwd=str(ui_dir),
+            env=env
+        )
+        
+        # Wait for either to exit (usually user interrupts with Ctrl+C)
+        frontend_proc.wait()
+    except KeyboardInterrupt:
+        click.echo("\nShutting down UI...")
+    finally:
+        if 'backend_proc' in locals():
+            backend_proc.terminate()
+        if 'frontend_proc' in locals():
+            frontend_proc.terminate()
+
+@cli.command()
 @click.argument("name")
-@click.option("--config", "-c", "config_paths", multiple=True, type=click.Path(exists=True), help="Path to MCP server config file (repeatable).")
+@click.option("--config", "-c", "config_paths", multiple=True, help="Path to MCP server config file (can be repeated).")
 @click.option("--input", "-i", "input_pairs", multiple=True, help="Input values as key=value pairs.")
 def run(name: str, config_paths: tuple[str, ...], input_pairs: tuple[str, ...]):
     """Execute an ATaC DSL trajectory workspace (or file)."""

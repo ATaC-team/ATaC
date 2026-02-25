@@ -30,46 +30,28 @@ function App() {
   const [trajInputs, setTrajInputs] = useState<TrajectoryInput[]>([]);
   const [trajVariables, setTrajVariables] = useState<any>({});
 
-  const [inputValues, setInputValues] = useState<Record<string, string>>(() => {
-    const saved = localStorage.getItem('atac_inputValues');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  const [mcpConfigPath, setMcpConfigPath] = useState<string>(() => localStorage.getItem('atac_mcpConfigPath') || '');
-  const [workspacePath, setWorkspacePath] = useState<string>(() => localStorage.getItem('atac_workspacePath') || '');
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const [mcpConfigPath, setMcpConfigPath] = useState<string[]>([]);
+  const [workspacePath, setWorkspacePath] = useState<string>('');
 
   const [isRunning, setIsRunning] = useState(false);
   const [runOutput, setRunOutput] = useState<string | null>(null);
   const [isLoadingWorkspace, setIsLoadingWorkspace] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem('atac_inputValues', JSON.stringify(inputValues));
-  }, [inputValues]);
-
-  useEffect(() => {
-    localStorage.setItem('atac_mcpConfigPath', mcpConfigPath);
-  }, [mcpConfigPath]);
-
-  useEffect(() => {
-    localStorage.setItem('atac_workspacePath', workspacePath);
-  }, [workspacePath]);
-
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
   }, []);
 
-  const onUpdateNode = useCallback((updatedNode: Node) => {
-    setNodes((nds) => nds.map((n) => (n.id === updatedNode.id ? updatedNode : n)));
-    setSelectedNode(updatedNode);
-  }, [setNodes]);
-
-  const handleLoadWorkspace = async () => {
-    if (!workspacePath) return;
+  const handleLoadWorkspace = useCallback(async (pathoverride?: string) => {
+    const targetPath = pathoverride || workspacePath;
+    if (!targetPath) return;
     try {
       setIsLoadingWorkspace(true);
-      const res = await fetch(`http://localhost:3001/api/workspace?path=${encodeURIComponent(workspacePath)}`);
+      const res = await fetch(`/api/workspace?path=${encodeURIComponent(targetPath)}`);
       if (!res.ok) {
-        const err = await res.json();
+        const text = await res.text();
+        let err;
+        try { err = JSON.parse(text); } catch (e) { err = { error: text }; }
         throw new Error(err.error || 'Failed to load workspace');
       }
       const data = await res.json();
@@ -81,13 +63,61 @@ function App() {
       // Auto-select if a single file was directly passed
       if (data.type === 'file' && loadedFiles.length === 1) {
         handleFileClick(loadedFiles[0]);
+      } else if (data.type === 'directory' && loadedFiles.length > 0) {
+        // Optional: Auto open the first index.yaml if available
+        const indexFile = loadedFiles.find(f => f.name === 'index.yaml' || f.name === 'index.json');
+        if (indexFile) {
+          handleFileClick(indexFile);
+        }
       }
     } catch (err: any) {
       alert("Error loading workspace/file: " + err.message);
     } finally {
       setIsLoadingWorkspace(false);
     }
-  };
+  }, [workspacePath]); // handleFileClick is stable enough since it's just updating state
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          const config = await res.json();
+          let shouldTriggerLoad = false;
+          let newWorkspacePath = workspacePath;
+
+          if (config.mcpConfigPath) {
+            if (Array.isArray(config.mcpConfigPath)) {
+              setMcpConfigPath(config.mcpConfigPath);
+            } else if (typeof config.mcpConfigPath === 'string') {
+              setMcpConfigPath([config.mcpConfigPath]);
+            }
+          }
+          if (config.workspaceDir && !workspacePath) {
+            const defaultAtacPath = config.workspaceDir + '/.atac';
+            setWorkspacePath(defaultAtacPath);
+            newWorkspacePath = defaultAtacPath;
+            shouldTriggerLoad = true;
+          }
+
+          if (shouldTriggerLoad && newWorkspacePath) {
+            handleLoadWorkspace(newWorkspacePath);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch initial ATaC config", err);
+      }
+    };
+    fetchConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onUpdateNode = useCallback((updatedNode: Node) => {
+    setNodes((nds) => nds.map((n) => (n.id === updatedNode.id ? updatedNode : n)));
+    setSelectedNode(updatedNode);
+  }, [setNodes]);
+
+
 
   const handleFileClick = (file: WorkspaceFile) => {
     setSelectedFile(file.path);
@@ -130,14 +160,40 @@ function App() {
           <div className="space-y-2">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Configuration</h2>
             <div>
-              <label className="text-xs font-medium text-gray-700 block mb-1">MCP Server ConfigsPath</label>
-              <input
-                type="text"
-                placeholder="/path/to/mcp_config.json"
-                value={mcpConfigPath}
-                onChange={e => setMcpConfigPath(e.target.value)}
-                className="w-full text-xs px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white shadow-sm"
-              />
+              <div>
+                <label className="text-xs font-medium text-gray-700 block mb-1">MCP Server ConfigsPath</label>
+                {mcpConfigPath.map((path, index) => (
+                  <div key={index} className="flex space-x-2 mb-2">
+                    <input
+                      type="text"
+                      placeholder="/path/to/mcp_config.json"
+                      value={path}
+                      onChange={e => {
+                        const newPaths = [...mcpConfigPath];
+                        newPaths[index] = e.target.value;
+                        setMcpConfigPath(newPaths);
+                      }}
+                      className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white shadow-sm"
+                    />
+                    <button
+                      onClick={() => {
+                        const newPaths = mcpConfigPath.filter((_, i) => i !== index);
+                        setMcpConfigPath(newPaths);
+                      }}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium px-2"
+                      title="Remove path"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setMcpConfigPath([...mcpConfigPath, ''])}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center mt-1"
+                >
+                  + Add Config Path
+                </button>
+              </div>
             </div>
           </div>
 
@@ -153,11 +209,11 @@ function App() {
                   placeholder="/Users/... or relative path"
                   value={workspacePath}
                   onChange={e => setWorkspacePath(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleLoadWorkspace()}
+                  onKeyDown={e => e.key === 'Enter' && handleLoadWorkspace(workspacePath)}
                   className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white shadow-sm"
                 />
                 <button
-                  onClick={handleLoadWorkspace}
+                  onClick={() => handleLoadWorkspace(workspacePath)}
                   disabled={isLoadingWorkspace}
                   className="bg-gray-800 hover:bg-gray-900 text-white text-xs py-1.5 px-3 rounded shadow-sm transition-colors disabled:bg-gray-400"
                 >
@@ -264,13 +320,24 @@ function App() {
 
                     const newYaml = yaml.dump(doc);
 
-                    const res = await fetch('http://localhost:3001/api/run', {
+                    const res = await fetch('/api/run', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ yamlContent: newYaml, mcpConfigPath })
                     });
 
-                    const result = await res.json();
+                    const text = await res.text();
+                    let result;
+                    try {
+                      result = JSON.parse(text);
+                    } catch (e) {
+                      throw new Error("Server returned non-JSON response: " + text.substring(0, 100));
+                    }
+
+                    if (!res.ok) {
+                      throw new Error(result.error || "Unknown server error");
+                    }
+
                     setRunOutput(result.output || result.error || "Execution finished with no output.");
                   } catch (e: any) {
                     setRunOutput("Error: " + e.message);
