@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.1] - 2026-02-25
+
+### 中文
+
+#### 重构 (Refactoring)
+- **[Core]** 进一步重构了 `ATaC` 类的核心架构，将原散落在 `cli.main` 中的工作区辅助函数（`load_trajectory`、`save_trajectory`、`get_workspaces` 等）统一收编为 `atac.core.atac_api.ATaC` 下的静态方法（Static Methods）。
+- **[Runtime]** 梳理并重构了内部的 Executor 导出机制，新增了 `executors/__init__.py`，并在 `atac_api.py`、`runtime.py` 及全量测试环境统一从主包层级调用 `BashExecutor`、`McpExecutor`，彻底消除了冗余及容易引发隐患的深层显式导包。
+
+### English
+
+#### Refactored
+- **[Core]** Substantially refactored the core `ATaC` engine design, migrating detached workspace utility functions (e.g., `load_trajectory`, `save_trajectory`, `get_workspaces`) from the `cli.main` module directly into `atac.core.atac_api.ATaC` as static methods for improved programmatic utilization.
+- **[Runtime]** Restructured the internal executor exporting mechanics by introducing an `__init__.py` interface to the `executors` module layer. Streamlined the internal dependency graph and resolved scattered manual deep imports for `BashExecutor` and `McpExecutor` across `atac_api`, `runtime`, and the testing suite.
+
 ## [0.3.0] - 2026-02-25
 
 ### 中文
