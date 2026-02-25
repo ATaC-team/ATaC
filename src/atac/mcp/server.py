@@ -4,7 +4,6 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from atac.cli.main import get_workspaces, load_trajectory, save_trajectory
 from atac.core.atac_api import ATaC
 from atac.runtimes.v1.models import DataType, JsonValue
 
@@ -23,7 +22,7 @@ async def atac_init(name: str, description: str = "") -> str:
     safe_name = Path(name).stem if ("/" in name or "." in name) else name
     
     builder = ATaC(name=safe_name, description=description)
-    save_trajectory(name, builder.export())
+    ATaC.save_trajectory(name, builder.export())
     return f"Successfully initialized new ATaC workspace '{safe_name}' at {name}"
 
 
@@ -37,10 +36,10 @@ async def atac_add_input(name: str, input_name: str, type: DataType = "string", 
         type: Data type (string, number, boolean, array, dict).
         default: Default value for the input.
     """
-    traj_dict = load_trajectory(name)
+    traj_dict = ATaC.load_trajectory(name)
     builder = ATaC.from_dict(traj_dict)
     builder.add_input(name=input_name, input_type=type, default_value=default) # type: ignore
-    save_trajectory(name, builder.export())
+    ATaC.save_trajectory(name, builder.export())
     return f"Successfully added input '{input_name}' to {name}"
 
 
@@ -56,10 +55,10 @@ async def atac_add_action(name: str, id: str, action: str, args: dict[str, JsonV
         at: Optional dot-separated path (e.g. '0.then') to insert the step.
         if_condition: Optional Jinja2 expression to conditionally execute this action.
     """
-    traj_dict = load_trajectory(name)
+    traj_dict = ATaC.load_trajectory(name)
     builder = ATaC.from_dict(traj_dict)
     builder.add_action_step(action_id=id, action=action, args=args, at_path=at, if_condition=if_condition)
-    save_trajectory(name, builder.export())
+    ATaC.save_trajectory(name, builder.export())
     return f"Successfully added action '{id}' to {name} at position {at or 'root'}"
 
 
@@ -73,10 +72,10 @@ async def atac_add_for(name: str, in_expr: str, item: str, at: str | None = None
         item: The variable name assigned to each loop iteration.
         at: Optional dot-separated path indicating where to insert this loop.
     """
-    traj_dict = load_trajectory(name)
+    traj_dict = ATaC.load_trajectory(name)
     builder = ATaC.from_dict(traj_dict)
     builder.add_for_step(in_expr=in_expr, item=item, at_path=at)
-    save_trajectory(name, builder.export())
+    ATaC.save_trajectory(name, builder.export())
     return f"Successfully added for-loop over '{in_expr}' to {name} at position {at or 'root'}"
 
 
@@ -89,10 +88,10 @@ async def atac_add_if(name: str, condition: str, at: str | None = None) -> str:
         condition: Jinja2 logical expression to evaluate.
         at: Optional dot-separated path indicating where to insert this condition.
     """
-    traj_dict = load_trajectory(name)
+    traj_dict = ATaC.load_trajectory(name)
     builder = ATaC.from_dict(traj_dict)
     builder.add_if_step(condition=condition, at_path=at)
-    save_trajectory(name, builder.export())
+    ATaC.save_trajectory(name, builder.export())
     return f"Successfully added if condition '{condition}' to {name} at position {at or 'root'}"
 
 
@@ -105,10 +104,10 @@ async def atac_add_set(name: str, variables: dict[str, JsonValue], at: str | Non
         variables: Dictionary mapping variable names to their values (can be Jinja2 expressions).
         at: Optional dot-separated path indicating where to insert this step.
     """
-    traj_dict = load_trajectory(name)
+    traj_dict = ATaC.load_trajectory(name)
     builder = ATaC.from_dict(traj_dict)
     builder.add_set_step(variables=variables, at_path=at)
-    save_trajectory(name, builder.export())
+    ATaC.save_trajectory(name, builder.export())
     return f"Successfully added set variables step to {name} at position {at or 'root'}"
 
 
@@ -120,11 +119,11 @@ async def atac_remove_step(name: str, at: str) -> str:
         name: Workspace name or path.
         at: The exact path to the step to remove (e.g. "0", "0.2.then.1").
     """
-    traj_dict = load_trajectory(name)
+    traj_dict = ATaC.load_trajectory(name)
     builder = ATaC.from_dict(traj_dict)
     try:
         builder.remove_step(at_path=at)
-        save_trajectory(name, builder.export())
+        ATaC.save_trajectory(name, builder.export())
         return f"Successfully removed step at path '{at}' from {name}"
     except ValueError as e:
         return f"Error removing step: {str(e)}"
@@ -137,7 +136,7 @@ async def atac_list() -> str:
     Returns:
         JSON string representing a list of available workspaces.
     """
-    workspaces = get_workspaces()
+    workspaces = ATaC.get_workspaces()
     return json.dumps(workspaces, indent=2, ensure_ascii=False)
 
 
@@ -148,7 +147,7 @@ async def atac_show(name: str) -> str:
     Args:
         name: Workspace name or path.
     """
-    traj_dict = load_trajectory(name)
+    traj_dict = ATaC.load_trajectory(name)
     return json.dumps(traj_dict, indent=2, ensure_ascii=False)
 
 
@@ -161,7 +160,7 @@ async def atac_run(name: str, inputs: dict[str, JsonValue] | None = None, config
         inputs: Dictionary of input values matching the trajectory's requirements.
         config_paths: Optional paths to MCP server config JSON files.
     """
-    traj_dict = load_trajectory(name)
+    traj_dict = ATaC.load_trajectory(name)
     try:
         logging.info(f"Running trajectory {name} with inputs: {inputs}")
         outputs = await ATaC.execute(

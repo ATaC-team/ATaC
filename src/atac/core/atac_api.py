@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import Any
 
 from atac.runtimes.v1.executors.base import ActionExecutor
@@ -235,3 +236,72 @@ class ATaC:
         
         runtime = WorkflowRuntime(execs, trajectory, inputs)
         return await runtime.run()
+
+    @staticmethod
+    def resolve_workspace_path(name: str) -> Path:
+        """Resolve a workspace name to its corresponding index.yaml path."""
+        from pathlib import Path
+        if name.endswith(".yaml") or name.endswith(".yml") or name.endswith(".json"):
+            return Path(name)
+        return Path(f".atac/{name}/index.yaml")
+
+    @staticmethod
+    def load_trajectory(file_or_name: str) -> dict[str, Any]:
+        """Helper to load a YAML or JSON trajectory from a workspace or file."""
+        import sys
+        path = ATaC.resolve_workspace_path(file_or_name)
+        if not path.exists():
+            print(f"Error: Workspace or File '{file_or_name}' does not exist.", file=sys.stderr)
+            sys.exit(1)
+            
+        with open(path, encoding="utf-8") as f:
+            if path.suffix in (".yaml", ".yml"):
+                import yaml
+                return yaml.safe_load(f)
+            return json.load(f)
+
+    @staticmethod
+    def save_trajectory(file_or_name: str, data: dict[str, Any]):
+        """Helper to save a trajectory dictionary to YAML/JSON."""
+        path = ATaC.resolve_workspace_path(file_or_name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(path, "w", encoding="utf-8") as f:
+            if path.suffix in (".yaml", ".yml"):
+                import yaml
+                yaml.dump(data, f, sort_keys=False, allow_unicode=True)
+            else:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+
+    @staticmethod
+    def get_workspaces() -> list[dict[str, Any]]:
+        """Scan the .atac/ directory and return metadata for all valid workspaces."""
+        from pathlib import Path
+
+        import yaml
+        workspaces = []
+        base_dir = Path(".atac")
+        if not base_dir.exists() or not base_dir.is_dir():
+            return workspaces
+            
+        for d in base_dir.iterdir():
+            if not d.is_dir():
+                continue
+            index_file = d / "index.yaml"
+            if not index_file.exists():
+                continue
+                
+            try:
+                with open(index_file, encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                    meta = data.get("meta", {})
+                    workspaces.append({
+                        "directory": d.name,
+                        "name": meta.get("name", d.name),
+                        "description": meta.get("description", "No description provided.")
+                    })
+            except Exception:
+                # Optionally log error, but for listing we just skip malformed files
+                continue
+                
+        return sorted(workspaces, key=lambda x: x["name"])

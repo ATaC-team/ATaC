@@ -2,50 +2,11 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Any
 
 import click
-import yaml
 
 from atac.core.atac_api import ATaC
 from atac.runtimes.v1.models import Trajectory
-
-
-def resolve_workspace_path(name: str) -> Path:
-    """Resolve a workspace name to its corresponding index.yaml path, preserving explicit local file paths if necessary."""
-    # If the user explicitly passed something ending in .yaml, trust it (for backwards compatibility)
-    if name.endswith(".yaml") or name.endswith(".yml") or name.endswith(".json"):
-        return Path(name)
-    
-    # Otherwise, treat it as a workspace name wrapper
-    return Path(f".atac/{name}/index.yaml")
-
-
-def load_trajectory(file_or_name: str) -> dict[str, Any]:
-    """Helper to load a YAML or JSON trajectory from a workspace or file."""
-    path = resolve_workspace_path(file_or_name)
-    if not path.exists():
-        click.echo(f"Error: Workspace or File '{file_or_name}' does not exist.", err=True)
-        sys.exit(1)
-        
-    with open(path, encoding="utf-8") as f:
-        if path.suffix in (".yaml", ".yml"):
-            return yaml.safe_load(f)
-        return json.load(f)
-
-
-def save_trajectory(file_or_name: str, data: dict[str, Any]):
-    """Helper to save a trajectory dictionary to YAML/JSON."""
-    path = resolve_workspace_path(file_or_name)
-    
-    # Ensure parent directories exist
-    path.parent.mkdir(parents=True, exist_ok=True)
-    
-    with open(path, "w", encoding="utf-8") as f:
-        if path.suffix in (".yaml", ".yml"):
-            yaml.dump(data, f, sort_keys=False, allow_unicode=True)
-        else:
-            json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 @click.group()
@@ -60,7 +21,7 @@ def cli():
 @click.option("--input", "-i", "input_pairs", multiple=True, help="Input values as key=value pairs.")
 def run(name: str, config_paths: tuple[str, ...], input_pairs: tuple[str, ...]):
     """Execute an ATaC DSL trajectory workspace (or file)."""
-    trajectory = load_trajectory(name)
+    trajectory = ATaC.load_trajectory(name)
     
     # Parse key=value input pairs
     inputs = {}
@@ -89,7 +50,7 @@ def run(name: str, config_paths: tuple[str, ...], input_pairs: tuple[str, ...]):
 @click.argument("name")
 def param(name: str):
     """Extract and display parameters (inputs) required by a trajectory workspace."""
-    trajectory = load_trajectory(name)
+    trajectory = ATaC.load_trajectory(name)
             
     inputs = trajectory.get("inputs", [])
     if not inputs:
@@ -113,32 +74,6 @@ def param(name: str):
         click.echo(f"  - {name} [{inp_type}]{default}")
 
 
-def get_workspaces() -> list[dict[str, str]]:
-    """Return a list of all ATaC workspaces in the current directory."""
-    atac_dir = Path.cwd() / ".atac"
-    if not atac_dir.exists() or not atac_dir.is_dir():
-        return []
-        
-    workspaces = []
-    for entry in atac_dir.iterdir():
-        if entry.is_dir():
-            index_yaml = entry / "index.yaml"
-            index_json = entry / "index.json"
-            
-            target = index_yaml if index_yaml.exists() else (index_json if index_json.exists() else None)
-            
-            if target:
-                try:
-                    with open(target, encoding="utf-8") as f:
-                        data = yaml.safe_load(f) if target.suffix in (".yaml", ".yml") else json.load(f)
-                            
-                    name = data.get("meta", {}).get("name", entry.name) if data else entry.name
-                    desc = data.get("meta", {}).get("description", "No description") if data else "No description"
-                    workspaces.append({"directory": entry.name, "name": name, "description": desc})
-                except Exception as e:
-                    workspaces.append({"directory": entry.name, "name": "Error", "description": f"Failed to load: {str(e)}"})
-    return sorted(workspaces, key=lambda x: x["directory"])
-
 @cli.command()
 def schema():
     """Print the JSON schema for ATaC trajectories."""
@@ -148,7 +83,7 @@ def schema():
 @cli.command(name="list")
 def list_workspaces():
     """List all ATaC workspaces in the current directory."""
-    workspaces = get_workspaces()
+    workspaces = ATaC.get_workspaces()
     if not workspaces:
         click.echo("No workspaces found in .atac/")
         return
@@ -174,9 +109,9 @@ def init(name: str, description: str):
     safe_name = Path(name).stem if ("/" in name or "." in name) else name
     
     atac = ATaC(name=safe_name, description=description)
-    save_trajectory(name, atac.export())
+    ATaC.save_trajectory(name, atac.export())
     
-    resolved_path = resolve_workspace_path(name)
+    resolved_path = ATaC.resolve_workspace_path(name)
     click.echo(f"Initialized ATaC workspace '{safe_name}' at {resolved_path}")
 
 
@@ -187,7 +122,7 @@ def init(name: str, description: str):
 @click.option("--default", "default_val", default=None, help="Default value.")
 def add_input(name: str, input_name: str, type_: str, default_val: str):
     """Add an input definition to an existing workspace."""
-    data = load_trajectory(name)
+    data = ATaC.load_trajectory(name)
     atac = ATaC.from_dict(data)
     
     parsed_default = default_val
@@ -198,7 +133,7 @@ def add_input(name: str, input_name: str, type_: str, default_val: str):
             click.echo(f"Warning: --default for type '{type_}' is not valid JSON, keeping as string.")
             
     atac.add_input(input_name, type_, default_value=parsed_default)
-    save_trajectory(name, atac.export())
+    ATaC.save_trajectory(name, atac.export())
     click.echo(f"Added input '{input_name}' to workspace '{name}'")
 
 
@@ -209,7 +144,7 @@ def add_input(name: str, input_name: str, type_: str, default_val: str):
 @click.option("--value", default=None, help="Initial value.")
 def add_variable(name: str, var_name: str, type_: str, value: str):
     """Add a variable definition to an existing workspace."""
-    data = load_trajectory(name)
+    data = ATaC.load_trajectory(name)
     atac = ATaC.from_dict(data)
     
     parsed_value = value
@@ -220,7 +155,7 @@ def add_variable(name: str, var_name: str, type_: str, value: str):
             click.echo(f"Warning: --value for type '{type_}' is not valid JSON, keeping as string.")
             
     atac.add_variable(var_name, type_, initial_value=parsed_value)
-    save_trajectory(name, atac.export())
+    ATaC.save_trajectory(name, atac.export())
     click.echo(f"Added variable '{var_name}' to workspace '{name}'")
 
 
@@ -233,7 +168,7 @@ def add_variable(name: str, var_name: str, type_: str, value: str):
 @click.option("--at", "at_path", default=None, help="Nested path to insert at, e.g. '0' or '0.2.then'.")
 def add_action(name: str, action_id: str, action: str, args: str, output_to: str, at_path: str):
     """Add an action step to an existing workspace."""
-    data = load_trajectory(name)
+    data = ATaC.load_trajectory(name)
     atac = ATaC.from_dict(data)
     
     parsed_args = None
@@ -249,7 +184,7 @@ def add_action(name: str, action_id: str, action: str, args: str, output_to: str
         kwargs["output_to"] = output_to
         
     atac.add_action_step(action_id, action, args=parsed_args, at_path=at_path, **kwargs)
-    save_trajectory(name, atac.export())
+    ATaC.save_trajectory(name, atac.export())
     click.echo(f"Added action '{action_id}' to workspace '{name}'" + (f" at path '{at_path}'" if at_path else ""))
 
 
@@ -259,7 +194,7 @@ def add_action(name: str, action_id: str, action: str, args: str, output_to: str
 @click.option("--at", "at_path", default=None, help="Nested path to insert at.")
 def add_set(name: str, var_pairs: tuple[str, ...], at_path: str):
     """Add a set step to assign variables."""
-    data = load_trajectory(name)
+    data = ATaC.load_trajectory(name)
     atac = ATaC.from_dict(data)
     
     variables = {}
@@ -271,7 +206,7 @@ def add_set(name: str, var_pairs: tuple[str, ...], at_path: str):
         variables[key] = value
     
     atac.add_set_step(variables, at_path=at_path)
-    save_trajectory(name, atac.export())
+    ATaC.save_trajectory(name, atac.export())
     click.echo(f"Added set step to workspace '{name}'" + (f" at path '{at_path}'" if at_path else ""))
 
 
@@ -282,10 +217,10 @@ def add_set(name: str, var_pairs: tuple[str, ...], at_path: str):
 @click.option("--at", "at_path", default=None, help="Nested path to insert at.")
 def add_for(name: str, in_expr: str, loop_item: str, at_path: str):
     """Add a for-loop step (empty body, use --at to fill it)."""
-    data = load_trajectory(name)
+    data = ATaC.load_trajectory(name)
     atac = ATaC.from_dict(data)
     atac.add_for_step(in_expr, loop_item, at_path=at_path)
-    save_trajectory(name, atac.export())
+    ATaC.save_trajectory(name, atac.export())
     click.echo(f"Added for loop (item='{loop_item}') to workspace '{name}'" + (f" at path '{at_path}'" if at_path else ""))
 
 
@@ -295,10 +230,10 @@ def add_for(name: str, in_expr: str, loop_item: str, at_path: str):
 @click.option("--at", "at_path", default=None, help="Nested path to insert at.")
 def add_if(name: str, condition: str, at_path: str):
     """Add an if-condition step (empty then/else, use --at to fill them)."""
-    data = load_trajectory(name)
+    data = ATaC.load_trajectory(name)
     atac = ATaC.from_dict(data)
     atac.add_if_step(condition, at_path=at_path)
-    save_trajectory(name, atac.export())
+    ATaC.save_trajectory(name, atac.export())
     click.echo(f"Added if step to workspace '{name}'" + (f" at path '{at_path}'" if at_path else ""))
 
 
@@ -307,11 +242,11 @@ def add_if(name: str, condition: str, at_path: str):
 @click.option("--at", "at_path", required=True, help="Nested path of the step to remove (e.g. '0' or '0.2.then.1').")
 def rm(name: str, at_path: str):
     """Remove a specific step from a trajectory."""
-    data = load_trajectory(name)
+    data = ATaC.load_trajectory(name)
     atac = ATaC.from_dict(data)
     try:
         atac.remove_step(at_path)
-        save_trajectory(name, atac.export())
+        ATaC.save_trajectory(name, atac.export())
         click.echo(f"Successfully removed step '{at_path}' from workspace '{name}'")
     except ValueError as e:
         click.echo(f"Error removing step: {e}", err=True)
@@ -322,7 +257,7 @@ def rm(name: str, at_path: str):
 @click.argument("name")
 def show(name: str):
     """Show the trajectory structure with indices for navigation."""
-    data = load_trajectory(name)
+    data = ATaC.load_trajectory(name)
     click.echo(f"Trajectory Workspace: {data.get('meta', {}).get('name', name)}")
     
     steps = data.get("steps", [])
