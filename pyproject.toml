@@ -16,8 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 kimi = ["kimi-cli>=0.41"]
-claude = ["claude-agent-sdk"]
-all = ["kimi-cli>=0.41", "claude-agent-sdk"]
+all = ["kimi-cli>=0.41"]
 
 [tool.ruff.lint]
 select = ["C4", "E", "F", "I", "PERF", "UP"]
