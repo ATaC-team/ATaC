@@ -1,6 +1,6 @@
 import pytest
 
-from atac.runtimes.v1.executors.bash_executor import BashExecutor
+from atac.runtimes.v1.executors import BashExecutor
 from atac.runtimes.v1.parser import ParsedAction
 
 

@@ -1,7 +1,7 @@
 from typing import Any
 
 from atac.runtimes.v1.context import WorkflowContext
-from atac.runtimes.v1.executors.base import ActionExecutor
+from atac.runtimes.v1.executors import ActionExecutor
 from atac.runtimes.v1.models import (
     ActionStep,
     ForStep,

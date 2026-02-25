@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from mcp import StdioServerParameters
 
-from atac.runtimes.v1.executors.mcp_executor import McpExecutor
+from atac.runtimes.v1.executors import McpExecutor
 from atac.runtimes.v1.parser import ParsedAction
 
 
