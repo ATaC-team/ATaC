@@ -247,6 +247,7 @@ class ATaC:
     def load_trajectory(file_or_name: str) -> dict[str, Any]:
         """Helper to load a YAML or JSON trajectory from a workspace or file."""
         import sys
+
         import yaml
         
         if file_or_name == "-":

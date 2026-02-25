@@ -38,7 +38,7 @@ def get_mcp_config_paths() -> list[str]:
     local_config_path = Path(".atac/atac.json")
     if local_config_path.exists():
         try:
-            with open(local_config_path, "r", encoding="utf-8") as f:
+            with open(local_config_path, encoding="utf-8") as f:
                 data = json.load(f)
                 mcp_cfg = data.get("mcp_config")
                 if mcp_cfg:

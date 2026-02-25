@@ -30,7 +30,7 @@ def config(pairs: tuple[str, ...]):
     data = {}
     if config_path.exists():
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 data = json.load(f)
         except Exception:
             pass
@@ -57,7 +57,7 @@ def config(pairs: tuple[str, ...]):
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
         
-    click.echo(f"Saved configuration to .atac/atac.json")
+    click.echo("Saved configuration to .atac/atac.json")
 
 
 
@@ -66,6 +66,7 @@ def ui():
     """Launch the ATaC Visual Builder UI."""
     import os
     import subprocess
+
     import atac
     
     # Locate the ui directory relative to the atac package root
