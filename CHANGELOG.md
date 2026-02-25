@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.2] - 2026-02-25
+
+### 中文
+
+#### 新增与改进 (New Features & Improvements)
+- **[CLI Configuration]** `atac config` 命令现支持接收多个 `key=value`对（`nargs=-1`）。对于重复的键（如 `mcp_config`），会自动聚合为 JSON 列表，方便管理多个 MCP 配置文件。
+- **[Configuration Priority]** 优化了配置加载优先级：`.atac/atac.json` 中的设置（如 `mcp_config`）现在具有最高优先级，即使在加载时也会覆盖 `ATAC_MCP_SERVER_CONFIGS` 环境变量，确保项目级配置生效。
+- **[UI Enhancements]**
+  - **动态列表配置**：前端“MCP Server ConfigsPath”输入框升级为动态列表，支持一键添加/删除多个配置文件路径。
+  - **自动发现与加载**：UI 启动时会自动扫描工作区目录下的 `.atac/` 文件夹，并智能识别其中包含 `index.yaml`/`index.json` 的子目录作为有效工作区，无需手动输入路径。
+  - **体验优化**：移除了 `localStorage` 缓存机制，确保每次打开 UI 都加载最新配置。
+
+### English
+
+#### New Features & Improvements
+- **[CLI Configuration]** The `atac config` command now supports accepting multiple `key=value` pairs (`nargs=-1`). Duplicate keys (e.g., `mcp_config`) are automatically aggregated into a JSON list, facilitating the management of multiple MCP configuration files.
+- **[Configuration Priority]** Optimized configuration loading priority: settings in `.atac/atac.json` (such as `mcp_config`) now take the highest precedence, overriding `ATAC_MCP_SERVER_CONFIGS` environment variables during loading to ensure project-level configurations are applied.
+- **[UI Enhancements]**
+  - **Dynamic List Configuration**: The "MCP Server ConfigsPath" input in the frontend has been upgraded to a dynamic list, supporting one-click addition/removal of multiple configuration file paths.
+  - **Auto-Discovery & Loading**: Upon startup, the UI automatically scans the `.atac/` folder in the workspace directory and intelligently identifies subdirectories containing `index.yaml`/`index.json` as valid workspaces, eliminating the need for manual path entry.
+  - **UX Optimization**: Removed `localStorage` caching mechanisms to ensure the latest configuration is loaded every time the UI is opened.
+
 ## [0.3.1] - 2026-02-25
 
 ### 中文
