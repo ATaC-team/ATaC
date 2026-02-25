@@ -25,11 +25,31 @@ settings = AtacSettings()
 
 
 def get_mcp_config_paths() -> list[str]:
-    """Return the list of MCP server config file paths from env."""
-    raw = settings.atac_mcp_server_configs.strip()
-    if not raw:
-        return []
-    return [p.strip() for p in raw.split(",") if p.strip()]
+    """Return the list of MCP server config file paths from env and local .atac/atac.json."""
+    paths = []
+    
+    # 1. Environment Variable
+    raw_env = settings.atac_mcp_server_configs.strip()
+    if raw_env:
+        paths.extend([p.strip() for p in raw_env.split(",") if p.strip()])
+        
+    # 2. Local Workspace Config (.atac/atac.json)
+    # This takes precedence because load_mcp_servers appends and overrides duplicate server keys
+    local_config_path = Path(".atac/atac.json")
+    if local_config_path.exists():
+        try:
+            with open(local_config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                mcp_cfg = data.get("mcp_config")
+                if mcp_cfg:
+                    if isinstance(mcp_cfg, list):
+                        paths.extend([p.strip() for p in mcp_cfg if p.strip()])
+                    elif isinstance(mcp_cfg, str):
+                        paths.extend([p.strip() for p in mcp_cfg.split(",") if p.strip()])
+        except Exception:
+            pass
+            
+    return paths
 
 
 def _load_file(path: Path) -> dict[str, Any]:

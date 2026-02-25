@@ -46,3 +46,4 @@ design_docs/
 # --- OS ---
 .DS_Store
 Thumbs.db
+.atac/atac.json
