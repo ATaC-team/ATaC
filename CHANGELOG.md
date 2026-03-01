@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.3] - 2026-03-01
+
+### 中文
+
+#### 重构与改进 (Refactoring & Improvements)
+- **[UI Architecture]** 彻底重构了 `atac ui` 的运行机制，实现了真正的即插即用：
+  - **静态构建**：前端 Vue/React 项目现在已被预编译为静态产物，并直接打包在 `atac.ui_static` Python 包内，不再依赖用户本地的 Node.js/NPM 开发环境。
+  - **原生 Python 后端**：移除了笨重的 Express.js 后端，内置了一个极其轻量级的原生 Python HTTP Server (`ui_server.py`) 来提供 API 服务和静态资源托管。
+  - **全局可用**：`atac ui` 命令现在可以在系统上的**任何目录**直接拉起（如 Home 目录），并且会自动打开默认浏览器，告别了因强依赖仓库源码结构而导致的路径找不到或端口冲突问题。
+  - **TS 修复**：修复了 UI 编译阶段遇到的 TypeScript 未使用变量导致的构建阻断问题。
+
+### English
+
+#### Refactoring & Improvements
+- **[UI Architecture]** Completely refactored the execution mechanics of `atac ui`, achieving true plug-and-play capability:
+  - **Static Build**: The frontend Vue/React project is now pre-compiled into static assets and bundled directly within the `atac.ui_static` Python package, removing the dependency on a local Node.js/NPM development environment.
+  - **Native Python Backend**: Removed the heavy Express.js backend and replaced it with a highly lightweight native Python HTTP Server (`ui_server.py`) for API routing and static file hosting.
+  - **Global Accessibility**: The `atac ui` command can now be launched from **any directory** on your system (e.g., your Home directory) and will automatically open the default browser. This eliminates path resolution errors and port conflicts caused by strict dependencies on the repository's source structure.
+  - **TS Fixes**: Fixed a TypeScript unused variable error that blocked the frontend build process.
+
 ## [0.3.2] - 2026-02-25
 
 ### 中文

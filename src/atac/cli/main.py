@@ -65,56 +65,31 @@ def config(pairs: tuple[str, ...]):
 def ui():
     """Launch the ATaC Visual Builder UI."""
     import os
-    import subprocess
-
+    import sys
+    from pathlib import Path
+    
     import atac
+    from atac.cli.ui_server import start_server
     
-    # Locate the ui directory relative to the atac package root
-    # atac is in src/atac, ui is in the top-level repo directory.
-    # However, depending on installation (pip install -e . vs normal install),
-    # the location varies. For this implementation, assume it is installed
-    # with the project root structure where `ui` is adjacent to `src`
-    
+    # Locate the ui_static directory relative to the atac package root
     atac_pkg_dir = Path(atac.__file__).parent
-    # Check if we are in the source tree: src/atac -> parent is src -> parent is root
-    repo_root = atac_pkg_dir.parent.parent
-    ui_dir = repo_root / "ui"
+    ui_dir = atac_pkg_dir / "ui_static"
     
-    if not ui_dir.exists() or not (ui_dir / "package.json").exists():
-        click.echo("Error: Could not locate the 'ui' directory. Please ensure ATaC is installed correctly with the UI components.", err=True)
+    if not ui_dir.exists() or not (ui_dir / "index.html").exists():
+        click.echo("Error: Could not locate the 'ui_static' directory. Please ensure ATaC is installed with the built UI components.", err=True)
         sys.exit(1)
         
     cwd = os.getcwd()
-    env = os.environ.copy()
-    env["ATAC_WORKSPACE_DIR"] = cwd
+    os.environ["ATAC_WORKSPACE_DIR"] = cwd
     
     click.echo(f"Starting ATaC UI for workspace directory: {cwd}")
-    click.echo("Running backend server and Vite frontend...")
     
     try:
-        # Start the backend server
-        backend_proc = subprocess.Popen(
-            ["node", "server.mjs"],
-            cwd=str(ui_dir),
-            env=env
-        )
-        
-        # Start the frontend server
-        frontend_proc = subprocess.Popen(
-            ["npm", "run", "dev"],
-            cwd=str(ui_dir),
-            env=env
-        )
-        
-        # Wait for either to exit (usually user interrupts with Ctrl+C)
-        frontend_proc.wait()
+        # Start the Python UI server (blocking call, simple single-threaded HTTP server)
+        # It handles API routes and serves the static files from ui_static
+        start_server(port=3001, open_browser=True)
     except KeyboardInterrupt:
         click.echo("\nShutting down UI...")
-    finally:
-        if 'backend_proc' in locals():
-            backend_proc.terminate()
-        if 'frontend_proc' in locals():
-            frontend_proc.terminate()
 
 @cli.command()
 @click.argument("name")
