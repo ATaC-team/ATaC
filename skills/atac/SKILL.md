@@ -8,6 +8,10 @@ description: DSL and CLI for building and running Agentic Trajectories (ATaC).
 ATaC enables building automated "trajectories" (workflows) that combine MCP tools and Bash commands with standard programming logic (loops, conditionals).
 
 ## 1. Project Setup
+- **`config <key=value>...`**
+  Sets project-level configurations saved in `.atac/atac.json`. Configurations set here (e.g., `mcp_config`) take the highest priority during execution.
+  *Example*: `atac config mcp_config=path/to/server1.json mcp_config=path/to/server2.json`
+
 - **`init <name> --description <str>`**
   Creates a new trajectory workspace at `.atac/<name>/index.yaml`.
   *Example*: `atac init my_task --description "Iterate via Amap"`
