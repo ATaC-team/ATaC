@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.4] - 2026-03-02
+
+### 中文
+
+#### 重构与改进 (Refactoring & Improvements)
+- **[UI Backend FastAPI Refactor]** 进一步重构了内置的 Python UI 服务器，使用工业级的 **FastAPI** 和 **Uvicorn** 完全替换了基础的 `http.server`，带来由 Pydantic 强类型校验支撑的 API、更高的性能，以及完善的单页应用（SPA）历史路由回退支持。
+- **[Global Working Directory]** 所有 CLI 命令现已支持全局参数 `-C` / `--cwd <path>`，允许从任意路径直接将 `atac` 挂载到目标目录下执行操作，而无须提前通过 `cd` 切换目录。
+
+### English
+
+#### Refactoring & Improvements
+- **[UI Backend FastAPI Refactor]** Further refactored the embedded Python UI server by replacing the basic `http.server` with an industrial-grade **FastAPI** application running on **Uvicorn**. This brings massive performance gains, robust typed API validation via Pydantic, and flawless SPA history fallback routing for the frontend.
+- **[Global Working Directory]** All CLI commands now support a global parameter `-C` / `--cwd <path>`. This allows executing any `atac` command against an arbitrary target directory environment without needing to manually `cd` into it first.
+
 ## [0.3.3] - 2026-03-01
 
 ### 中文
