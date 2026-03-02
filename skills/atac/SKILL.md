@@ -1,68 +1,84 @@
 ---
 name: atac
-description: DSL and CLI for building and running Agentic Trajectories (ATaC).
+description: DSL and CLI for building and running Agentic Trajectories (ATaC). Make sure to use this skill whenever the user asks to build an automated trajectory, a workflow, pipeline, or agentic loop, or mentions combining MCP tools and Bash commands. Trigger this whenever the user wants to work with `.atac` files or the `atac` CLI!
 ---
 
-# ATaC CLI Skill (Detailed Guide)
+# ATaC (Agentic Trajectories)
 
-ATaC enables building automated "trajectories" (workflows) that combine MCP tools and Bash commands with standard programming logic (loops, conditionals).
+ATaC enables building automated "trajectories" (workflows) that combine MCP tools and Bash commands with standard programming logic (loops, conditionals). 
 
-> **Global Working Directory**: You can run ANY ATaC command against a specific directory without `cd`-ing into it by using the global `-C` or `--cwd` option before the sub-command.
-> *Example*: `atac -C /path/to/project list` or `atac -C /path/to/project run my_task`
+> **Global Working Directory**: You can run ANY ATaC CLI command against a specific directory without `cd`-ing into it by using the global `-C` or `--cwd` option before the sub-command.
+> 
+> **Example:** 
+> `atac -C /path/to/project list` or `atac -C /path/to/project run my_task`
 
 ## 1. Project Setup
+
+Start by configuring your workspace or initializing a new trajectory.
+
 - **`config <key=value>...`**
   Sets project-level configurations saved in `.atac/atac.json`. Configurations set here (e.g., `mcp_config`) take the highest priority during execution.
-  *Example*: `atac config mcp_config=path/to/server1.json mcp_config=path/to/server2.json`
+  **Example:** `atac config mcp_config=path/to/server1.json mcp_config=path/to/server2.json`
 
 - **`init <name> --description <str>`**
   Creates a new trajectory workspace at `.atac/<name>/index.yaml`.
-  *Example*: `atac init my_task --description "Iterate via Amap"`
+  **Example:** `atac init my_task --description "Iterate via Amap"`
 
 - **`add-input <name> --name <n> --type [string|integer|boolean|float|list|object] [--default <json>]`**
   Defines parameters users pass at runtime.
-  *Example (List)*: `atac add-input my_task --name cities --type list --default '["Beijing", "Shanghai"]'`
+  **Example:** `atac add-input my_task --name cities --type list --default '["Beijing", "Shanghai"]'`
 
 - **`add-variable <name> --name <n> --type <t> [--value <json>]`**
   Defines initial runtime variables (state).
 
 - **`schema`**
-  Prints the full JSON schema of the ATaC trajectory.
-  *Use this to understand the valid YAML structure for direct editing.*
-
+  Prints the full JSON schema of the ATaC trajectory. 
+  *Tip: Use this to understand the valid YAML structure for direct editing.*
 
 ## 2. Building Logic (Control Flow)
+
+Use control flows to handle complex orchestration, like batch processing or conditionally running tasks based on previous tool outputs.
+
 - **`add-for <name> --in <expr> --item <name> [--at <path>]`**
-  Iterates over a list expression. 
-  *Example*: `atac add-for my_task --in '${inputs.cities}' --item city`
+  Iterates over a list expression. This is useful when you have dynamic arrays returned by previous MCP tools.
+  **Example:** `atac add-for my_task --in '${inputs.cities}' --item city`
 
 - **`add-if <name> --condition <expr> [--at <path>]`**
-  Branches based on a Jinja2 expression.
-  *Example*: `atac add-if my_task --condition "${city == 'Beijing'}" --at 0`
+  Branches based on a Jinja2 expression. Helps to prevent failures when data is missing.
+  **Example:** `atac add-if my_task --condition "${city == 'Beijing'}" --at 0`
 
 - **`add-set <name> --var <key=val> [--at <path>]`**
   Assigns or updates a variable.
-  *Example*: `atac add-set my_task --var "status=processed" --at 0.2.then`
+  **Example:** `atac add-set my_task --var "status=processed" --at 0.2.then`
 
 ## 3. Tool Actions
+
+This is where the actual work happens in a trajectory.
+
 - **`add-action <name> --id <id> --action <url> [--args <json>] [--output-to <var>] [--at <path>]`**
   Invokes an MCP tool (`mcp://server/method`) or Bash command (`bash://run`).
-  *Example (MCP)*: `atac add-action my_task --id geo --action "mcp://amap-maps/maps_geo" --args '{"address": "${city}"}' --at 0`
+  **Example (MCP):** `atac add-action my_task --id geo --action "mcp://amap-maps/maps_geo" --args '{"address": "${city}"}' --at 0`
 
 ## 4. Navigating and Manipulating Workspaces
-Use **`atac list`** to see all available workspaces in the current directory and their descriptions.
 
-Use **`atac show <name>`** to view current step indices. The `--at` flag targets where to insert or delete steps:
-- **`None`**: Root level (append).
-- **`0`**: Inside the body of step index 0 (if it's a loop).
-- **`0.2.then`**: Step 0 (Loop) -> Step 2 (If) -> inside `then` branch.
+Always verify the state of your workspace before and after manipulating it so you know exactly what the trajectory looks like.
+
+- **`atac list`**
+  Prints all available workspaces in the current directory and their descriptions.
+
+- **`atac show <name>`**
+  Prints the current step indices. Use the `--at` flag to specify where to insert or delete steps:
+  - `None`: Root level (append).
+  - `0`: Inside the body of step index 0 (if it's a loop).
+  - `0.2.then`: Step 0 (Loop) -> Step 2 (If) -> inside `then` branch.
 
 - **`rm <name> --at <path>`**
   Deletes a specific step by its index path.
-  *Example*: `atac rm my_task --at 0.2.then.1`
+  **Example:** `atac rm my_task --at 0.2.then.1`
 
 ## 5. End-to-End Example (Amap Maps)
-Build a workflow that geocodes a list of cities and logs results:
+
+Here is a full workflow tracking how to geocode a list of cities and log the results:
 
 ```bash
 # 1. Setup
@@ -88,26 +104,28 @@ atac add-action demo --id log --action "bash://run" \
 atac run demo
 ```
 
-### 5.1 Nested Execution (Sub-Workflows)
-You can use `bash://run` to invoke another ATaC workspace natively, enabling modular and nested workflows. Ensure the environment has the correct configurations (like `ATAC_MCP_SERVER_CONFIGS`) since the nested command runs in a sub-shell.
+## 6. Advanced Patterns
 
+### Nested Execution (Sub-Workflows)
+You can use `bash://run` to invoke another ATaC workspace natively. This keeps complex workspaces modular and easier to read. Ensure the environment has the correct configurations (like `ATAC_MCP_SERVER_CONFIGS`) since the nested command runs in a sub-shell.
+
+**Example:**
 ```bash
 atac add-action wrapper_task --id nested_call --action "bash://run" \
   --args '{"command": "atac run inner_task --input param=val"}'
 ```
 
-## Reference Syntax
+### Direct YAML Editing
+While CLI commands ensure structural safety, agents can edit the `.atac/<name>/index.yaml` trajectory directly for speed or bulk changes.
+- **Check Schema First**: Always run `atac schema` to see the expected structure (e.g., specific field names for loops/ifs).
+- **Validation**: After editing, try running `atac show <name>` to verify if the structure is still correctly parsed.
+- **Mixed Mode**: It is common to initialize/build the foundation via CLI and then fine-tune logic or JSON arguments directly in the YAML file.
+
+## 7. Reference Syntax
+
 - **Input**: `${inputs.key}`
 - **Variable**: `${key}` (shorthand for `${variables.key}`)
 - **Step Result**: `${step_id.output}`
   - *MCP Note*: Access values via `${id.output.content[0].text.key}`.
   - *Bash Note*: Access values via `${id.output.stdout}`.
 - **Loop Accumulation**: In the final JSON output of `atac run`, repeated IDs (like those in loops) are returned as **lists** containing every result.
-
-## 6. Direct YAML Editing
-While CLI commands ensure structural safety, agents can edit the `.atac/<name>/index.yaml` trajectory directly for speed or bulk changes.
-
-- **Check Schema First**: Always run `atac schema` to see the expected structure (e.g., specific field names for loops/ifs).
-- **Validation**: After editing, try running `atac show <name>` to verify if the structure is still correctly parsed.
-- **Mixed Mode**: It is common to initialize/build the foundation via CLI and then fine-tune logic or JSON arguments directly in the YAML file.
-
