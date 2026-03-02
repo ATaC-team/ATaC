@@ -2,178 +2,168 @@ import json
 import os
 import subprocess
 import sys
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+import threading
+import time
+import webbrowser
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from typing import Any
 
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-class ATaCUIHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        # Serve static files from the `ui_static` directory
-        static_dir = Path(__file__).parent.parent / "ui_static"
-        super().__init__(*args, directory=str(static_dir), **kwargs)
+app = FastAPI(title="ATaC UI Backend")
 
-    def do_GET(self):
-        parsed = urlparse(self.path)
-        if parsed.path == '/api/config':
-            self._handle_api_config()
-        elif parsed.path == '/api/workspace':
-            self._handle_api_workspace(parsed.query)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class RunRequest(BaseModel):
+    yamlContent: str
+    mcpConfigPath: str | list[str] | None = None
+
+@app.get("/api/config")
+async def get_config() -> dict[str, Any]:
+    workspace_dir = os.environ.get("ATAC_WORKSPACE_DIR", "")
+    mcp_config_path = ""
+
+    if workspace_dir:
+        config_path = Path(workspace_dir) / ".atac" / "atac.json"
+        if config_path.exists():
+            try:
+                config = json.loads(config_path.read_text(encoding="utf-8"))
+                mcp_config_path = config.get("mcp_config", "")
+            except Exception as e:
+                print(f"[ATaC Backend] Failed to parse atac.json: {e}", file=sys.stderr)
+
+    return {
+        "workspaceDir": workspace_dir,
+        "mcpConfigPath": mcp_config_path
+    }
+
+@app.get("/api/workspace")
+async def get_workspace(path: str) -> dict[str, Any]:
+    if not path:
+        raise HTTPException(status_code=400, detail="path is required")
+        
+    target = Path(path)
+    
+    if not target.exists():
+        raise HTTPException(status_code=400, detail=f"Path '{path}' does not exist")
+        
+    try:
+        if target.is_dir():
+            files = []
+            for entry in target.iterdir():
+                if entry.is_file() and entry.suffix in [".yaml", ".yml"]:
+                    files.append({
+                        "name": entry.name,
+                        "path": str(entry),
+                        "content": entry.read_text(encoding="utf-8")
+                    })
+                elif entry.is_dir():
+                    for idx_name in ["index.yaml", "index.yml", "index.json"]:
+                        idx_path = entry / idx_name
+                        if idx_path.exists():
+                            files.append({
+                                "name": entry.name,
+                                "path": str(idx_path),
+                                "content": idx_path.read_text(encoding="utf-8")
+                            })
+                            break
+            return {"type": "directory", "files": files}
+        elif target.is_file() and target.suffix in [".yaml", ".yml", ".json"]:
+            return {
+                "type": "file",
+                "files": [{
+                    "name": target.name,
+                    "path": str(target),
+                    "content": target.read_text(encoding="utf-8")
+                }]
+            }
         else:
-            # SPA fallback: if file does not exist, return index.html
-            requested = Path(self.directory) / parsed.path.lstrip('/')
-            if not requested.exists() and not parsed.path.startswith('/api/'):
-                self.path = '/index.html'
-            super().do_GET()
+            raise HTTPException(status_code=400, detail="Not a valid directory, YAML, or JSON file")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    def do_POST(self):
-        parsed = urlparse(self.path)
-        if parsed.path == '/api/run':
-            self._handle_api_run()
-        else:
-            self.send_error(404, "Not Found")
+@app.post("/api/run")
+async def run_trajectory(req: RunRequest) -> dict[str, Any]:
+    env = os.environ.copy()
+    
+    if req.mcpConfigPath:
+        if isinstance(req.mcpConfigPath, list):
+            env["ATAC_MCP_SERVER_CONFIGS"] = ",".join(req.mcpConfigPath)
+        elif isinstance(req.mcpConfigPath, str) and req.mcpConfigPath.strip():
+            env["ATAC_MCP_SERVER_CONFIGS"] = req.mcpConfigPath.strip()
+            
+    print("[ATaC Backend Python] Running trajectory via stdin", flush=True)
 
-    def _send_json(self, data, status=200):
-        self.send_response(status)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(json.dumps(data).encode('utf-8'))
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "atac.cli.main", "run", "-"],
+            input=req.yamlContent.encode("utf-8"),
+            capture_output=True,
+            env=env
+        )
+        
+        output = proc.stdout.decode("utf-8") + proc.stderr.decode("utf-8")
+        print(f"[ATaC Backend Python] Trajectory finished with code {proc.returncode}", flush=True)
+        return {"output": output, "exitCode": proc.returncode}
+    except Exception as e:
+        print(f"[ATaC Backend Python] Spawn error: {e}", file=sys.stderr)
+        raise HTTPException(status_code=500, detail=f"Failed to start atac process: {str(e)}")
 
-    def _handle_api_config(self):
-        workspace_dir = os.environ.get("ATAC_WORKSPACE_DIR", "")
-        mcp_config_path = ""
+static_dir = Path(__file__).parent.parent / "ui_static"
+if static_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
 
-        if workspace_dir:
-            config_path = Path(workspace_dir) / ".atac" / "atac.json"
-            if config_path.exists():
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    # Try to serve a specific static file if it exists, otherwise return index.html for SPA frontend routing
+    if not static_dir.exists():
+        return JSONResponse(status_code=404, content={"error": "UI static files not found. Ensure ATaC is properly built."})
+        
+    file_path = static_dir / full_path
+    if file_path.exists() and file_path.is_file():
+        return FileResponse(file_path)
+    
+    index_file = static_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+        
+    return JSONResponse(status_code=404, content={"error": "index.html not found"})
+
+def start_server(port: int, open_browser: bool = True):
+    # Dynamically find an open port starting from `port` to avoid address conflicts
+    import socket
+    def find_free_port(p):
+        for port_try in range(p, p + 100):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 try:
-                    config = json.loads(config_path.read_text(encoding="utf-8"))
-                    mcp_config_path = config.get("mcp_config", "")
-                except Exception as e:
-                    print(f"[ATaC Backend] Failed to parse atac.json: {e}", file=sys.stderr)
-
-        self._send_json({
-            "workspaceDir": workspace_dir,
-            "mcpConfigPath": mcp_config_path
-        })
-
-    def _handle_api_workspace(self, query):
-        qs = parse_qs(query)
-        target_path_list = qs.get("path", [])
-        if not target_path_list:
-            return self._send_json({"error": "path is required"}, 400)
-            
-        target_path = target_path_list[0]
-        target = Path(target_path)
+                    s.bind(("127.0.0.1", port_try))
+                    return port_try
+                except OSError:
+                    pass
+        return p  # Fallback
         
-        if not target.exists():
-            return self._send_json({"error": f"Path '{target_path}' does not exist"}, 400)
-            
-        try:
-            if target.is_dir():
-                files = []
-                for entry in target.iterdir():
-                    if entry.is_file() and entry.suffix in [".yaml", ".yml"]:
-                        files.append({
-                            "name": entry.name,
-                            "path": str(entry),
-                            "content": entry.read_text(encoding="utf-8")
-                        })
-                    elif entry.is_dir():
-                        for idx_name in ["index.yaml", "index.yml", "index.json"]:
-                            idx_path = entry / idx_name
-                            if idx_path.exists():
-                                files.append({
-                                    "name": entry.name,
-                                    "path": str(idx_path),
-                                    "content": idx_path.read_text(encoding="utf-8")
-                                })
-                                break
-                self._send_json({"type": "directory", "files": files})
-            elif target.is_file() and target.suffix in [".yaml", ".yml", ".json"]:
-                self._send_json({
-                    "type": "file",
-                    "files": [{
-                        "name": target.name,
-                        "path": str(target),
-                        "content": target.read_text(encoding="utf-8")
-                    }]
-                })
-            else:
-                self._send_json({"error": "Not a valid directory, YAML, or JSON file"}, 400)
-        except Exception as e:
-            self._send_json({"error": str(e)}, 500)
+    final_port = find_free_port(port)
+    url = f"http://localhost:{final_port}"
+    print(f"[ATaC UI] FastAPI backend starting on {url}")
 
-    def _handle_api_run(self):
-        content_length_str = self.headers.get('Content-Length')
-        if not content_length_str:
-            return self._send_json({"error": "Content-Length required"}, 400)
-            
-        content_length = int(content_length_str)
-        body = self.rfile.read(content_length)
-        if not body:
-            return self._send_json({"error": "Request body forms empty"}, 400)
-            
-        try:
-            req_data = json.loads(body.decode("utf-8"))
-        except Exception as e:
-            return self._send_json({"error": f"Invalid JSON: {str(e)}"}, 400)
-            
-        yaml_content = req_data.get("yamlContent")
-        if not yaml_content:
-            return self._send_json({"error": "yamlContent is required"}, 400)
-            
-        mcp_config = req_data.get("mcpConfigPath")
-        env = os.environ.copy()
-        
-        if mcp_config:
-            if isinstance(mcp_config, list):
-                env["ATAC_MCP_SERVER_CONFIGS"] = ",".join(mcp_config)
-            elif isinstance(mcp_config, str) and mcp_config.strip():
-                env["ATAC_MCP_SERVER_CONFIGS"] = mcp_config.strip()
-                
-        print("[ATaC Backend Python] Running trajectory via stdin", flush=True)
+    if open_browser:
+        def open_browser_func():
+            time.sleep(1.0)
+            webbrowser.open(url)
+        threading.Thread(target=open_browser_func, daemon=True).start()
 
-        try:
-            # We use 'atac run -' assuming 'atac' script is in PATH
-            # If it's not strictly reliable, we might want to invoke it as [sys.executable, "-m", "atac.cli.main", "run", "-"]
-            proc = subprocess.run(
-                [sys.executable, "-m", "atac.cli.main", "run", "-"],
-                input=yaml_content.encode("utf-8"),
-                capture_output=True,
-                env=env
-            )
-            
-            output = proc.stdout.decode("utf-8") + proc.stderr.decode("utf-8")
-            print(f"[ATaC Backend Python] Trajectory finished with code {proc.returncode}", flush=True)
-            self._send_json({"output": output, "exitCode": proc.returncode})
-        except Exception as e:
-            print(f"[ATaC Backend Python] Spawn error: {e}", file=sys.stderr)
-            self._send_json({"error": f"Failed to start atac process: {str(e)}"}, 500)
-
-    # Disable excessive logging locally if needed
-    def log_message(self, format, *args):
-        pass
-
-def start_server(port, open_browser=True):
-    while True:
-        try:
-            server = HTTPServer(("localhost", port), ATaCUIHandler)
-            url = f"http://localhost:{port}"
-            print(f"[ATaC UI] Python backend listening on {url}")
-            if open_browser:
-                # Slightly delayed browser opening to allow server start
-                import threading
-                import webbrowser
-                def open_browser_func():
-                    import time
-                    time.sleep(0.5)
-                    webbrowser.open(url)
-                threading.Thread(target=open_browser_func, daemon=True).start()
-            server.serve_forever()
-        except OSError as e:
-            if getattr(e, "errno", None) == 48 or "Address already in use" in str(e):
-                port += 1
-            else:
-                raise
+    # Disable typical loud uvicorn access logging for a cleaner CLI
+    uvicorn.run(app, host="127.0.0.1", port=final_port, log_level="warning")
