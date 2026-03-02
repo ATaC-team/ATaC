@@ -10,9 +10,14 @@ from atac.runtimes.v1.models import Trajectory
 
 
 @click.group()
-def cli():
+@click.option("--cwd", "-C", type=click.Path(exists=True, file_okay=False, dir_okay=True), help="Execute commands within this specific directory.")
+@click.pass_context
+def cli(ctx: click.Context, cwd: str | None):
     """ATaC: Agentic Trajectory and Control CLI."""
-    pass
+    ctx.ensure_object(dict)
+    if cwd:
+        import os
+        os.chdir(cwd)
 
 
 @cli.command()

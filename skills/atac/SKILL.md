@@ -7,6 +7,9 @@ description: DSL and CLI for building and running Agentic Trajectories (ATaC).
 
 ATaC enables building automated "trajectories" (workflows) that combine MCP tools and Bash commands with standard programming logic (loops, conditionals).
 
+> **Global Working Directory**: You can run ANY ATaC command against a specific directory without `cd`-ing into it by using the global `-C` or `--cwd` option before the sub-command.
+> *Example*: `atac -C /path/to/project list` or `atac -C /path/to/project run my_task`
+
 ## 1. Project Setup
 - **`config <key=value>...`**
   Sets project-level configurations saved in `.atac/atac.json`. Configurations set here (e.g., `mcp_config`) take the highest priority during execution.
