@@ -236,3 +236,13 @@ def test_search_multi_keywords(tmp_memory_dir):
 
     results = ATaCMemory.search("test missing")
     assert len(results) == 0
+
+
+def test_search_accepts_term_list(tmp_memory_dir):
+    ATaCMemory.save(VALID_MEMORY)
+
+    results = ATaCMemory.search(["test", "example"])
+    assert len(results) == 1
+
+    results = ATaCMemory.search(["test", "missing"])
+    assert len(results) == 0

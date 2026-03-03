@@ -114,7 +114,7 @@ ATaC Memory also ships as a standalone MCP server, exposing the same operations 
 | `memory_save(data)` | Validate data and save a memory bundle |
 | `memory_list()` | Return all memory summaries as JSON |
 | `memory_read(name)` | Return the structured bundle payload as JSON |
-| `memory_search(query)` | Search records, return matches as JSON |
+| `memory_search(terms)` | Search records by keyword array, return matches as JSON |
 | `memory_delete(name)` | Delete a bundle |
 
 **Start the server:**

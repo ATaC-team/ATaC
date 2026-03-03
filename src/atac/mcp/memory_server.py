@@ -60,17 +60,17 @@ def memory_read(name: str) -> str:
 
 
 @mcp.tool()
-def memory_search(query: str) -> str:
+def memory_search(terms: list[str]) -> str:
     """
-    Search memory records by keyword across name, description, and tags.
+    Search memory records by keywords across name, description, and tags.
 
     Args:
-        query: Case-insensitive search string.
+        terms: Case-insensitive search terms.
 
     Returns:
         JSON array of matching memory summaries.
     """
-    results = ATaCMemory.search(query)
+    results = ATaCMemory.search(terms)
     return json.dumps(results, ensure_ascii=False, indent=2)
 
 

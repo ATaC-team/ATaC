@@ -231,18 +231,23 @@ class ATaCMemory:
     # ------------------------------------------------------------------ search
 
     @classmethod
-    def search(cls, query: str) -> list[dict[str, Any]]:
+    def search(cls, query: str | list[str]) -> list[dict[str, Any]]:
         """
         Search memory records by keywords across name, description, and tags.
-        Each word in the query must match at least one of the fields.
+        Each keyword must match at least one of the fields.
 
         Args:
-            query: Search string with one or more space-separated keywords.
+            query: Either a search string with space-separated keywords or an
+                explicit list of search terms.
 
         Returns:
             List of matching summary dicts.
         """
-        keywords = [k.lower() for k in query.split() if k]
+        if isinstance(query, str):
+            keywords = [k.lower() for k in query.split() if k]
+        else:
+            keywords = [term.strip().lower() for term in query if term.strip()]
+
         if not keywords:
             return cls.list_all()
 
