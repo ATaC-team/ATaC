@@ -119,13 +119,13 @@ ATaC Memory 将 AI 执行过的任务模式以 YAML 形式保存，供后续任�
 
 ```bash
 # 搜索相关历史经验
-atac memory search 高铁
+atac memory search 节假日 销售 分析
 
 # 任务完成后保存解法
 atac memory save ./my_solution.yaml
 
 # 下次任务前读取参考
-atac memory read query_hsr_fastest_route
+atac memory read analyze_regional_sales
 ```
 
 将 `skills/atac-memory` 复制到 Agent 工作区的 `skills/` 目录以激活：
@@ -235,13 +235,13 @@ ATaC Memory stores solved task patterns as YAML records for later retrieval:
 
 ```bash
 # Search for relevant past experience
-atac memory search station ranking
+atac memory search ranking analytics
 
 # Save a solution after completing a task
 atac memory save ./my_solution.yaml
 
 # Read the pattern before starting a similar task
-atac memory read query_hsr_fastest_route
+atac memory read analyze_regional_sales
 ```
 
 Copy `skills/atac-memory` to your Agent workspace's `skills/` directory to activate:

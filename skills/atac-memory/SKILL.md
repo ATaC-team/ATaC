@@ -27,30 +27,30 @@ A memory file is a YAML document with the following fields:
 Each **step** is flexible — it only requires `note` **or** `tool` (or both):
 
 ```yaml
-name: query_holiday_station_traffic
-description: 查询特定节假日期间经停列车数量最多的车站排名
+name: analyze_regional_sales
+description: Query and rank regions by sales volume for a given date range
 tags:
-  - trains
-  - statistics
-  - holiday
+  - sales
+  - analytics
+  - ranking
 steps:
   # Note-only step: pure observation / important caveat
-  - note: 数据库中日期可能不是当前年份，先探查实际数据范围
+  - note: The data may not reflect the current year; probe actual date range before filtering
 
   # Tool hint with args (illustrative, not enforced)
   - tool: execute_query
-    note: 先查一条区间记录确认日期格式
+    note: Fetch a sample row first to confirm date format and available dimensions
     args:
-      entity_name: sections
+      entity_name: orders
       dimensions:
-        - sections.plan_leave_date
+        - orders.created_at
       limit: 5
       measures:
-        - sections.count
+        - orders.count
 
   # Minimal tool hint (no args required)
   - tool: discover_entities
-    note: 如果字段不确定，先查一下 schema
+    note: When unsure about field names, discover the schema first
 ```
 
 ---
@@ -134,24 +134,24 @@ atac memory-mcp          # stdio transport (for MCP clients)
 
 1. **Before a task**: search memory for relevant past patterns.
    ```bash
-   atac memory search "高铁 最快"
-   atac memory search station
+   atac memory search sales
+   atac memory search ranking
    ```
 
 2. **After a successful task**: save the approach as a memory record so it can be reused.
    ```yaml
-   # ./solved_hsr.yaml
-   name: query_hsr_fastest_route
-   description: 查询任意两城市间G次高铁所有径路的最快行程时间
-   tags: [trains, hsr, routing]
+   # ./solved_task.yaml
+   name: analyze_regional_sales
+   description: Query and rank regions by sales volume for a given date range
+   tags: [sales, analytics, ranking]
    steps:
-     - note: 先用 routes 实体过滤 full_route 包含两城市名且 train_number 含 G
+     - note: Probe a sample row first to confirm date format before applying range filters
      - tool: execute_query
-       note: 查 sections 获取区间时刻，关键字段 serial_no / plan_leave_date / plan_arrive_date
-     - note: serial_no N 代表 station[N-1]→station[N]，出发站 ca_idx 对应 depart_serial = ca_idx+1
+       note: Group by region dimension and aggregate with a sum measure
+     - note: Order results descending; top-N limit can be adjusted via the limit param
    ```
    ```bash
-   atac memory save ./solved_hsr.yaml
+   atac memory save ./solved_task.yaml
    ```
 
 3. **When reusing**: `memory read` returns the steps, guide the agent's plan accordingly.
