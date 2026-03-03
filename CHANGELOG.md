@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.2] - 2026-03-03
+
+### 中文
+
+#### 优化
+- **ATaC Memory**: 优化 `search` 搜索算法，支持多关键词模糊匹配（AND 逻辑），可同时匹配名称、描述和标签。
+
+### English
+
+#### Changed
+- **ATaC Memory**: Optimized the `search` function to support multi-keyword fuzzy matching across name, description, and tags.
+
 ## [0.4.1] - 2026-03-03
 
 ### 中文
