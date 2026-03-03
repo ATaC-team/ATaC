@@ -463,5 +463,115 @@ def mcp():
     mcp_server.run()
 
 
+# ---------------------------------------------------------------------------
+# atac memory  subcommand group
+# ---------------------------------------------------------------------------
+
+
+@cli.group()
+def memory():
+    """Manage ATaC Memory records (.atac/memory/)."""
+
+
+@memory.command(name="save")
+@click.argument("file", type=click.Path(exists=True, dir_okay=False))
+def memory_save(file: str):
+    """Validate and save a memory YAML file into .atac/memory/."""
+    import yaml
+
+    from atac.core.atac_memory import ATaCMemory
+
+    with open(file, encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+
+    try:
+        path = ATaCMemory.save(data)
+        click.echo(f"Saved memory '{data['name']}' → {path}")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@memory.command(name="list")
+def memory_list():
+    """List all memory records in .atac/memory/."""
+    from atac.core.atac_memory import ATaCMemory
+
+    records = ATaCMemory.list_all()
+    if not records:
+        click.echo("No memory records found in .atac/memory/")
+        return
+
+    click.echo(f"Found {len(records)} memory record(s):\n")
+    for r in records:
+        tags = f"  [{', '.join(r['tags'])}]" if r.get("tags") else ""
+        click.echo(f"  {r['name']}{tags}")
+        click.echo(f"    {r['description']}")
+        click.echo()
+
+
+@memory.command(name="read")
+@click.argument("name")
+def memory_read(name: str):
+    """Print the full content of a memory record."""
+    import yaml
+
+    from atac.core.atac_memory import ATaCMemory
+
+    try:
+        data = ATaCMemory.load(name)
+        click.echo(yaml.dump(data, allow_unicode=True, sort_keys=False), nl=False)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@memory.command(name="search")
+@click.argument("query")
+def memory_search(query: str):
+    """Search memory records by keyword (name / description / tags)."""
+    from atac.core.atac_memory import ATaCMemory
+
+    results = ATaCMemory.search(query)
+    if not results:
+        click.echo(f"No results for '{query}'")
+        return
+
+    click.echo(f"{len(results)} result(s) for '{query}':\n")
+    for r in results:
+        tags = f"  [{', '.join(r['tags'])}]" if r.get("tags") else ""
+        click.echo(f"  {r['name']}{tags}")
+        click.echo(f"    {r['description']}")
+        click.echo()
+
+
+@memory.command(name="delete")
+@click.argument("name")
+@click.confirmation_option(prompt="Are you sure you want to delete this memory?")
+def memory_delete(name: str):
+    """Delete a memory record by name."""
+    from atac.core.atac_memory import ATaCMemory
+
+    try:
+        ATaCMemory.delete(name)
+        click.echo(f"Deleted memory '{name}'")
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# atac memory-mcp  — standalone Memory MCP server
+# ---------------------------------------------------------------------------
+
+
+@cli.command(name="memory-mcp")
+def memory_mcp():
+    """Start the ATaC Memory MCP server over stdio."""
+    from atac.mcp.memory_server import mcp as memory_mcp_server
+
+    memory_mcp_server.run()
+
+
 if __name__ == "__main__":
     cli()

@@ -43,4 +43,5 @@ include = ["atac*"]
 
 [tool.setuptools.package-data]
 "atac.specs.v1" = ["*.json"]
+"atac.specs.memory" = ["*.json"]
 "atac.ui_static" = ["*", "**/*"]
