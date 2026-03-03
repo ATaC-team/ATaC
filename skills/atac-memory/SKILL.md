@@ -71,8 +71,8 @@ List all memory records with their descriptions and tags.
 ```bash
 atac memory list
 # Found 3 memory record(s):
-#   query_holiday_station_traffic  [trains, statistics, holiday]
-#     查询特定节假日期间经停列车数量最多的车站排名
+#   analyze_regional_sales  [sales, analytics, ranking]
+#     Query and rank regions by sales volume for a given date range
 ```
 
 ### `atac memory read <name>`

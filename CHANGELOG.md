@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0] - 2026-03-03
+
+### 中文
+
+#### 新特性
+- **ATaC Memory 模块**: 引入了 Agent 记忆存储系统，允许将验证过的任务模式（Task Patterns）作为 YAML 格式持久化。
+  - **规范化 Schema**: 定义了支持 `note` 与 `tool` 提示的灵活结构。
+  - **CLI 管理**: 新增了 `atac memory` 命令组（包含 `save`, `list`, `read`, `search`, `delete` 等命令）。
+  - **独立 MCP Server**: 提供了 `atac memory-mcp` 命令，将记忆检索和管理功能暴露为标准的 MCP Tools。
+
+### English
+
+#### Features
+- **ATaC Memory Module**: Introduced an agent memory store to persist validated task patterns as YAML files.
+  - **Standardized Schema**: Defined a flexible schema supporting `note` and `tool` hints.
+  - **CLI Management**: Added the `atac memory` command group with operations like `save`, `list`, `read`, `search`, and `delete`.
+  - **Standalone MCP Server**: Provided the `atac memory-mcp` command to expose memory retrieval and management as standard MCP Tools.
+
 ## [0.3.5] - 2026-03-03
 
 ### 中文
