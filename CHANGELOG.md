@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.5] - 2026-03-03
+
+### 中文
+
+#### 重构
+- **ATaC Memory MCP**: 将 `memory_search` 的 MCP 入参从单个字符串调整为字符串数组，便于 Agent 显式传递多关键词检索条件。
+- **ATaC Memory Core**: 同步扩展内部搜索接口，支持字符串和字符串数组两种输入形式，保持 CLI 检索行为不变。
+
+### English
+
+#### Changed
+- **ATaC Memory MCP**: Changed the `memory_search` MCP input from a single string to a string array so agents can pass explicit multi-term queries.
+- **ATaC Memory Core**: Extended the internal search API to accept both strings and string arrays while keeping CLI search behavior unchanged.
+
 ## [0.4.4] - 2026-03-03
 
 ### 中文
