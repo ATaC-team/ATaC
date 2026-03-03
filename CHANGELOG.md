@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.3] - 2026-03-03
+
+### 中文
+
+#### 重构
+- **ATaC Memory**: 将记忆存储从单个 YAML 文件重构为目录 bundle，统一使用 `.atac/.memory/<name>/index.html` 作为入口，并允许在目录内附带脚本等辅助文件。
+- **ATaC Memory CLI / MCP / Skill**: 更新了 `memory` 子命令、独立 memory MCP、README 和 `skills/atac-memory` 文档，使其与新的 bundle 存储结构保持一致，同时保留对旧版 YAML 记忆文件的读取兼容。
+
+### English
+
+#### Changed
+- **ATaC Memory**: Refactored memory storage from single YAML files into directory bundles with `.atac/.memory/<name>/index.html` as the entry point, allowing helper scripts and related files to live alongside each memory.
+- **ATaC Memory CLI / MCP / Skill**: Updated the `memory` CLI commands, standalone memory MCP server, README, and `skills/atac-memory` documentation to match the new bundle format while preserving read compatibility for legacy YAML memories.
+
 ## [0.4.2] - 2026-03-03
 
 ### 中文
