@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.1] - 2026-03-03
+
+### 中文
+
+#### 优化
+- **ATaC Memory**: 变更默认记忆存储目录，由 `.atac/memory/` 修改为隐藏目录 `.atac/.memory/` 以减少对项目结构的视觉干扰。
+
+### English
+
+#### Changed
+- **ATaC Memory**: Changed the default memory storage directory from `.atac/memory/` to a hidden directory `.atac/.memory/` to reduce visual clutter in project structures.
+
 ## [0.4.0] - 2026-03-03
 
 ### 中文
