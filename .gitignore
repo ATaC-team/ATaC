@@ -47,4 +47,4 @@ design_docs/
 .DS_Store
 Thumbs.db
 .atac/atac.json
-.atac/memory/
+.atac/.memory/

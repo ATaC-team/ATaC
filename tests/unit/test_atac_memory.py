@@ -22,8 +22,8 @@ VALID_MEMORY = {
 
 @pytest.fixture(autouse=True)
 def tmp_memory_dir(tmp_path, monkeypatch):
-    """Redirect .atac/memory to a temp directory for each test."""
-    mem_dir = tmp_path / ".atac" / "memory"
+    """Redirect .atac/.memory to a temp directory for each test."""
+    mem_dir = tmp_path / ".atac" / ".memory"
     mem_dir.mkdir(parents=True)
     monkeypatch.setattr(ATaCMemory, "BASE_DIR", mem_dir)
     return mem_dir

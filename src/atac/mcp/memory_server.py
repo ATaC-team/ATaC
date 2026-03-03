@@ -16,7 +16,7 @@ mcp = FastMCP("ATaC Memory")
 @mcp.tool()
 def memory_save(data: dict) -> str:
     """
-    Validate and save a memory record to .atac/memory/<name>.yaml.
+    Validate and save a memory record to .atac/.memory/<name>.yaml.
 
     Args:
         data: Memory object with required fields: name, description, steps.
@@ -32,7 +32,7 @@ def memory_save(data: dict) -> str:
 @mcp.tool()
 def memory_list() -> str:
     """
-    List all memory records in .atac/memory/.
+    List all memory records in .atac/.memory/.
 
     Returns:
         JSON array of summary objects: [{name, description, tags}, ...]

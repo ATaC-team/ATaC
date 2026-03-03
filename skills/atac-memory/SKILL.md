@@ -5,7 +5,7 @@ description: Lightweight agent memory store for recording and retrieving reusabl
 
 # ATaC Memory
 
-ATaC Memory stores reusable task patterns as YAML records in `.atac/memory/`. Each record is a named, searchable hint — not a deterministic DSL script — giving agents flexible guidance on how to approach a class of problems.
+ATaC Memory stores reusable task patterns as YAML records in `.atac/.memory/`. Each record is a named, searchable hint — not a deterministic DSL script — giving agents flexible guidance on how to approach a class of problems.
 
 > **Global Working Directory**: Like the main `atac` CLI, all memory commands respect the `-C / --cwd` flag.
 >
@@ -58,11 +58,11 @@ steps:
 ## CLI Commands
 
 ### `atac memory save <file>`
-Validate a YAML file against the memory schema and write it to `.atac/memory/<name>.yaml`.
+Validate a YAML file against the memory schema and write it to `.atac/.memory/<name>.yaml`.
 
 ```bash
 atac memory save ./my_memory.yaml
-# → Saved memory 'query_holiday_station_traffic' → .atac/memory/query_holiday_station_traffic.yaml
+# → Saved memory 'query_holiday_station_traffic' → .atac/.memory/query_holiday_station_traffic.yaml
 ```
 
 ### `atac memory list`

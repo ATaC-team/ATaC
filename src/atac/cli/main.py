@@ -470,13 +470,13 @@ def mcp():
 
 @cli.group()
 def memory():
-    """Manage ATaC Memory records (.atac/memory/)."""
+    """Manage ATaC Memory records (.atac/.memory/)."""
 
 
 @memory.command(name="save")
 @click.argument("file", type=click.Path(exists=True, dir_okay=False))
 def memory_save(file: str):
-    """Validate and save a memory YAML file into .atac/memory/."""
+    """Validate and save a memory YAML file into .atac/.memory/."""
     import yaml
 
     from atac.core.atac_memory import ATaCMemory
@@ -494,12 +494,12 @@ def memory_save(file: str):
 
 @memory.command(name="list")
 def memory_list():
-    """List all memory records in .atac/memory/."""
+    """List all memory records in .atac/.memory/."""
     from atac.core.atac_memory import ATaCMemory
 
     records = ATaCMemory.list_all()
     if not records:
-        click.echo("No memory records found in .atac/memory/")
+        click.echo("No memory records found in .atac/.memory/")
         return
 
     click.echo(f"Found {len(records)} memory record(s):\n")

@@ -1,7 +1,7 @@
 """
 ATaC Memory — lightweight agent memory store.
 
-Memory records are YAML files stored at .atac/memory/<name>.yaml.
+Memory records are YAML files stored at .atac/.memory/<name>.yaml.
 They capture reusable task patterns with optional tool hints for agents.
 """
 
@@ -17,7 +17,7 @@ import yaml
 class ATaCMemory:
     """CRUD interface for ATaC Memory records."""
 
-    BASE_DIR = Path(".atac/memory")
+    BASE_DIR = Path(".atac/.memory")
     _schema_cache: dict | None = None
 
     # ------------------------------------------------------------------ schema
@@ -87,7 +87,7 @@ class ATaCMemory:
     @classmethod
     def list_all(cls) -> list[dict[str, Any]]:
         """
-        Scan .atac/memory/ and return summary dicts for all valid records.
+        Scan .atac/.memory/ and return summary dicts for all valid records.
 
         Returns:
             List of dicts with keys: name, description, tags.
