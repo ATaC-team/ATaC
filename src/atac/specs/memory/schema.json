@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "ATaC Memory",
-    "description": "The structured payload embedded inside an ATaC Memory bundle entry (.atac/.memory/<name>/index.html).",
+    "description": "The structured payload stored in an ATaC Memory bundle entry (.atac/.memory/<name>/index.yaml).",
     "type": "object",
     "required": [
         "name",

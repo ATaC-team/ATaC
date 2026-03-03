@@ -5,7 +5,7 @@ description: Lightweight agent memory store for recording and retrieving reusabl
 
 # ATaC Memory
 
-ATaC Memory stores reusable task patterns as directory bundles in `.atac/.memory/<name>/`. Each bundle uses `index.html` as its entry and may include helper scripts or other local assets. The structured memory payload is embedded inside `index.html`, so records remain searchable while still behaving like portable folders.
+ATaC Memory stores reusable task patterns as directory bundles in `.atac/.memory/<name>/`. Each bundle uses `index.yaml` as its entry and may include helper scripts or other local assets.
 
 > **Global Working Directory**: Like the main `atac` CLI, all memory commands respect the `-C / --cwd` flag.
 >
@@ -15,7 +15,7 @@ ATaC Memory stores reusable task patterns as directory bundles in `.atac/.memory
 
 ## Memory Bundle Format
 
-The structured payload embedded in `index.html` contains the following fields:
+The structured payload stored in `index.yaml` contains the following fields:
 
 | Field | Required | Description |
 |-------|----------|-------------|
@@ -28,7 +28,7 @@ Each **step** is flexible — it only requires `note` **or** `tool` (or both):
 
 ```text
 .atac/.memory/analyze_regional_sales/
-├── index.html
+├── index.yaml
 └── scripts/
     └── helper.py
 ```
@@ -62,11 +62,11 @@ steps:
 ## CLI Commands
 
 ### `atac memory save <path>`
-If `<path>` is a YAML/JSON file, validate it against the memory schema and generate `.atac/.memory/<name>/index.html`. If `<path>` is a directory containing `index.html`, validate and import the whole bundle, preserving scripts and other files.
+If `<path>` is a YAML/JSON file, validate it against the memory schema and generate `.atac/.memory/<name>/index.yaml`. If `<path>` is a directory containing `index.yaml`, validate and import the whole bundle, preserving scripts and other files.
 
 ```bash
 atac memory save ./my_memory.yaml
-# → Saved memory 'query_holiday_station_traffic' → .atac/.memory/query_holiday_station_traffic/index.html
+# → Saved memory 'query_holiday_station_traffic' → .atac/.memory/query_holiday_station_traffic/index.yaml
 
 atac memory save ./my_memory_bundle
 ```
@@ -82,7 +82,7 @@ atac memory list
 ```
 
 ### `atac memory read <name>`
-Print the structured payload extracted from the bundle entry.
+Print the structured payload stored in the bundle entry.
 
 ```bash
 atac memory read query_holiday_station_traffic

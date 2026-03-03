@@ -16,7 +16,7 @@ mcp = FastMCP("ATaC Memory")
 @mcp.tool()
 def memory_save(data: dict) -> str:
     """
-    Validate and save a memory bundle to .atac/.memory/<name>/index.html.
+    Validate and save a memory bundle to .atac/.memory/<name>/index.yaml.
 
     Args:
         data: Memory object with required fields: name, description, steps.

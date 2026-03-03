@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.4] - 2026-03-03
+
+### 中文
+
+#### 修正
+- **ATaC Memory**: 将目录化记忆 bundle 的入口从误设的 `index.html` 更正为 `index.yaml`，不再引入 HTML 表达层，聚焦纯 YAML 存储。
+- **ATaC Memory CLI / MCP / Docs**: 同步更新 memory CLI、独立 memory MCP、README、`skills/atac-memory` 和相关测试，使其与 `index.yaml` 入口保持一致。
+
+### English
+
+#### Fixed
+- **ATaC Memory**: Corrected the bundle entry file from the mistaken `index.html` to `index.yaml`, removing the unnecessary HTML layer and keeping memory storage YAML-first.
+- **ATaC Memory CLI / MCP / Docs**: Updated the memory CLI, standalone memory MCP server, README, `skills/atac-memory`, and related tests to align with the `index.yaml` bundle entry.
+
 ## [0.4.3] - 2026-03-03
 
 ### 中文

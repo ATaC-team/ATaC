@@ -27,7 +27,10 @@ VALID_MEMORY = {
 def _write_bundle(bundle_dir, data, script_name=None):
     bundle_dir.mkdir(parents=True, exist_ok=True)
     entry_path = bundle_dir / ATaCMemory.ENTRY_FILE
-    entry_path.write_text(ATaCMemory._render_html(data), encoding="utf-8")
+    entry_path.write_text(
+        yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
     if script_name:
         script_path = bundle_dir / script_name
         script_path.parent.mkdir(parents=True, exist_ok=True)
@@ -47,7 +50,7 @@ def tmp_memory_dir(tmp_path, monkeypatch):
 
 
 def test_validate_valid():
-    ATaCMemory.validate(VALID_MEMORY)  # should not raise
+    ATaCMemory.validate(VALID_MEMORY)
 
 
 def test_validate_missing_name():
@@ -93,12 +96,12 @@ def test_validate_step_missing_note_and_tool():
 
 def test_validate_step_note_only():
     data = {**VALID_MEMORY, "steps": [{"note": "just a note"}]}
-    ATaCMemory.validate(data)  # should not raise
+    ATaCMemory.validate(data)
 
 
 def test_validate_step_tool_only():
     data = {**VALID_MEMORY, "steps": [{"tool": "some_tool"}]}
-    ATaCMemory.validate(data)  # should not raise
+    ATaCMemory.validate(data)
 
 
 # ------------------------------------------------------------------ save / load
@@ -109,7 +112,8 @@ def test_save_creates_bundle(tmp_memory_dir):
     assert path.is_dir()
     entry_path = path / ATaCMemory.ENTRY_FILE
     assert entry_path.exists()
-    assert "atac-memory-data" in entry_path.read_text(encoding="utf-8")
+    content = yaml.safe_load(entry_path.read_text(encoding="utf-8"))
+    assert content["name"] == "test_query"
 
 
 def test_save_bundle_copies_scripts(tmp_path, tmp_memory_dir):
@@ -145,7 +149,7 @@ def test_load_not_found(tmp_memory_dir):
 
 def test_save_invalid_raises(tmp_memory_dir):
     with pytest.raises(Exception):
-        ATaCMemory.save({"name": "ok", "steps": []})  # missing description + empty steps
+        ATaCMemory.save({"name": "ok", "steps": []})
 
 
 # ------------------------------------------------------------------ list_all
@@ -155,10 +159,15 @@ def test_list_all_empty(tmp_memory_dir):
     assert ATaCMemory.list_all() == []
 
 
-def test_list_all_returns_summaries(tmp_path, tmp_memory_dir):
+def test_list_all_returns_summaries(tmp_memory_dir):
     ATaCMemory.save(VALID_MEMORY)
 
-    second = {**VALID_MEMORY, "name": "second-record", "description": "Another one", "tags": ["b"]}
+    second = {
+        **VALID_MEMORY,
+        "name": "second-record",
+        "description": "Another one",
+        "tags": ["b"],
+    }
     legacy_path = ATaCMemory.resolve_legacy_path("second-record")
     legacy_path.write_text(yaml.safe_dump(second, sort_keys=False), encoding="utf-8")
 

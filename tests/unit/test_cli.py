@@ -130,13 +130,15 @@ def test_cli_memory_save_from_bundle_dir(tmp_path):
     source_dir.mkdir()
     entry_path = source_dir / ATaCMemory.ENTRY_FILE
     entry_path.write_text(
-        ATaCMemory._render_html(
+        yaml.safe_dump(
             {
                 "name": "bundle_memory",
                 "description": "Memory bundle with scripts",
                 "tags": ["bundle"],
                 "steps": [{"tool": "memory_search", "note": "Reuse prior bundle"}],
-            }
+            },
+            sort_keys=False,
+            allow_unicode=True,
         ),
         encoding="utf-8",
     )
@@ -149,5 +151,5 @@ def test_cli_memory_save_from_bundle_dir(tmp_path):
     assert "bundle_memory" in result.output
 
     saved_bundle = tmp_path / ".atac" / ".memory" / "bundle_memory"
-    assert (saved_bundle / "index.html").exists()
+    assert (saved_bundle / "index.yaml").exists()
     assert (saved_bundle / "scripts" / "helper.sh").exists()

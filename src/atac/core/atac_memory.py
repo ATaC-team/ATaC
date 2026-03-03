@@ -1,59 +1,25 @@
 """
 ATaC Memory — lightweight agent memory store.
 
-Memory records are stored as bundles under .atac/.memory/<name>/index.html.
-The index.html entry embeds the structured memory payload and the bundle may
-also include helper scripts or other local assets.
+Memory records are stored as bundles under .atac/.memory/<name>/index.yaml.
+The bundle may also include helper scripts or other local assets.
 """
 
 from __future__ import annotations
 
 import json
 import shutil
-from html import escape
-from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 
-class _MemoryHTMLParser(HTMLParser):
-    """Extract embedded memory JSON from the generated HTML bundle entry."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._capture = False
-        self._parts: list[str] = []
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        attr_map = dict(attrs)
-        if (
-            tag == "script"
-            and attr_map.get("id") == "atac-memory-data"
-            and attr_map.get("type") == "application/json"
-        ):
-            self._capture = True
-
-    def handle_data(self, data: str) -> None:
-        if self._capture:
-            self._parts.append(data)
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag == "script" and self._capture:
-            self._capture = False
-
-    @property
-    def payload(self) -> str:
-        return "".join(self._parts).strip()
-
-
 class ATaCMemory:
     """CRUD interface for ATaC Memory records."""
 
     BASE_DIR = Path(".atac/.memory")
-    ENTRY_FILE = "index.html"
-    DATA_SCRIPT_ID = "atac-memory-data"
+    ENTRY_FILE = "index.yaml"
     _schema_cache: dict | None = None
 
     # ------------------------------------------------------------------ schema
@@ -87,30 +53,17 @@ class ATaCMemory:
 
     @classmethod
     def resolve_legacy_path(cls, name: str) -> Path:
-        """Return the legacy YAML path for a given memory name."""
+        """Return the legacy single-file YAML path for a given memory name."""
         return cls.BASE_DIR / f"{name}.yaml"
 
     # ------------------------------------------------------------------ helpers
 
     @classmethod
-    def _extract_from_html(cls, html_text: str, source: Path) -> dict[str, Any]:
-        parser = _MemoryHTMLParser()
-        parser.feed(html_text)
-        payload = parser.payload
-        if not payload:
-            raise ValueError(
-                f"Memory bundle '{source}' is missing embedded JSON in #{cls.DATA_SCRIPT_ID}"
-            )
-
-        try:
-            data = json.loads(payload)
-        except json.JSONDecodeError as exc:
-            raise ValueError(
-                f"Memory bundle '{source}' contains invalid embedded JSON: {exc}"
-            ) from exc
-
+    def _load_yaml_file(cls, path: Path) -> dict[str, Any]:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
-            raise ValueError(f"Memory bundle '{source}' must embed a JSON object")
+            raise ValueError(f"Memory file '{path}' must contain a YAML object")
+        cls.validate(data)
         return data
 
     @classmethod
@@ -120,9 +73,7 @@ class ATaCMemory:
             raise FileNotFoundError(
                 f"Memory bundle '{bundle_dir.name}' not found at {entry_path}"
             )
-        data = cls._extract_from_html(entry_path.read_text(encoding="utf-8"), entry_path)
-        cls.validate(data)
-        return data
+        return cls._load_yaml_file(entry_path)
 
     @classmethod
     def _summary(cls, data: dict[str, Any]) -> dict[str, Any]:
@@ -141,103 +92,6 @@ class ATaCMemory:
             shutil.rmtree(bundle_dir)
         if legacy_path.exists():
             legacy_path.unlink()
-
-    @classmethod
-    def _render_html(cls, data: dict[str, Any]) -> str:
-        json_payload = json.dumps(data, ensure_ascii=False, indent=2).replace("</", "<\\/")
-        tags = ", ".join(data.get("tags", [])) or "untagged"
-
-        step_items = []
-        for step in data["steps"]:
-            heading = ""
-            if step.get("tool"):
-                heading = f"<strong>Tool:</strong> {escape(step['tool'])}"
-            note = ""
-            if step.get("note"):
-                note = f"<p>{escape(step['note'])}</p>"
-            args = ""
-            if step.get("args"):
-                args_json = escape(json.dumps(step["args"], ensure_ascii=False, indent=2))
-                args = f"<pre><code>{args_json}</code></pre>"
-            if not heading:
-                heading = "<strong>Note</strong>"
-            step_items.append(f"<li>{heading}{note}{args}</li>")
-
-        steps_html = "\n".join(step_items)
-        title = escape(data["name"])
-        description = escape(data["description"])
-        tag_block = escape(tags)
-
-        return f"""<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content="{description}" />
-    <style>
-      :root {{
-        color-scheme: light;
-        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
-        line-height: 1.6;
-      }}
-      body {{
-        margin: 0;
-        background: linear-gradient(180deg, #f7f1e3 0%, #fffaf0 100%);
-        color: #261c15;
-      }}
-      main {{
-        max-width: 760px;
-        margin: 0 auto;
-        padding: 48px 24px 72px;
-      }}
-      h1 {{
-        margin-bottom: 0.25rem;
-        font-size: clamp(2rem, 4vw, 3rem);
-      }}
-      .meta {{
-        color: #6a5444;
-        font-size: 0.95rem;
-      }}
-      article {{
-        background: rgba(255, 255, 255, 0.8);
-        border: 1px solid rgba(74, 50, 31, 0.12);
-        border-radius: 20px;
-        padding: 24px;
-        box-shadow: 0 18px 60px rgba(74, 50, 31, 0.08);
-      }}
-      ol {{
-        padding-left: 1.25rem;
-      }}
-      li + li {{
-        margin-top: 1rem;
-      }}
-      pre {{
-        overflow-x: auto;
-        padding: 12px;
-        background: #f3ead7;
-        border-radius: 12px;
-      }}
-    </style>
-  </head>
-  <body>
-    <main>
-      <article>
-        <h1>{title}</h1>
-        <p>{description}</p>
-        <p class="meta">Tags: {tag_block}</p>
-        <h2>Guidance</h2>
-        <ol>
-          {steps_html}
-        </ol>
-      </article>
-    </main>
-    <script id="{cls.DATA_SCRIPT_ID}" type="application/json">
-{json_payload}
-    </script>
-  </body>
-</html>
-"""
 
     # ------------------------------------------------------------------ CRUD
 
@@ -258,7 +112,10 @@ class ATaCMemory:
         cls._clear_existing(data["name"])
         bundle_dir.mkdir(parents=True, exist_ok=True)
         entry_path = bundle_dir / cls.ENTRY_FILE
-        entry_path.write_text(cls._render_html(data), encoding="utf-8")
+        entry_path.write_text(
+            yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
         return bundle_dir
 
     @classmethod
@@ -267,7 +124,7 @@ class ATaCMemory:
         Validate and copy an existing memory bundle directory into .atac/.memory/.
 
         Args:
-            source_dir: Directory containing an index.html memory entry and optional assets.
+            source_dir: Directory containing an index.yaml memory entry and optional assets.
 
         Returns:
             Bundle directory where the memory was written.
@@ -307,10 +164,7 @@ class ATaCMemory:
 
         legacy_path = cls.resolve_legacy_path(name)
         if legacy_path.exists():
-            with open(legacy_path, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-            cls.validate(data)
-            return data
+            return cls._load_yaml_file(legacy_path)
 
         raise FileNotFoundError(
             f"Memory '{name}' not found at {cls.resolve_entry_path(name)}"
@@ -336,10 +190,9 @@ class ATaCMemory:
                     entry_path = path / cls.ENTRY_FILE
                     if not entry_path.exists():
                         continue
-                    data = cls._load_bundle(path)
+                    data = cls._load_yaml_file(entry_path)
                 elif path.suffix == ".yaml":
-                    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-                    cls.validate(data)
+                    data = cls._load_yaml_file(path)
                 else:
                     continue
 

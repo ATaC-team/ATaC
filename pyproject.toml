@@ -1,6 +1,6 @@
 [project]
 name = "atac"
-version = "0.4.3"
+version = "0.4.4"
 description = "Recording and Replay AI Agent Trajectory."
 readme = "README.md"
 requires-python = ">=3.13"

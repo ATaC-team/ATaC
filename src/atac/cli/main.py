@@ -470,7 +470,7 @@ def mcp():
 
 @cli.group()
 def memory():
-    """Manage ATaC Memory bundles (.atac/.memory/<name>/index.html)."""
+    """Manage ATaC Memory bundles (.atac/.memory/<name>/index.yaml)."""
 
 
 @memory.command(name="save")
