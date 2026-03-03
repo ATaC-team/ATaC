@@ -16,7 +16,7 @@ mcp = FastMCP("ATaC Memory")
 @mcp.tool()
 def memory_save(data: dict) -> str:
     """
-    Validate and save a memory record to .atac/.memory/<name>.yaml.
+    Validate and save a memory bundle to .atac/.memory/<name>/index.html.
 
     Args:
         data: Memory object with required fields: name, description, steps.
@@ -24,7 +24,7 @@ def memory_save(data: dict) -> str:
     """
     try:
         path = ATaCMemory.save(data)
-        return f"Saved memory '{data.get('name')}' at {path}"
+        return f"Saved memory '{data.get('name')}' at {path / ATaCMemory.ENTRY_FILE}"
     except Exception as e:
         return f"Error saving memory: {e}"
 
@@ -32,7 +32,7 @@ def memory_save(data: dict) -> str:
 @mcp.tool()
 def memory_list() -> str:
     """
-    List all memory records in .atac/.memory/.
+    List all memory bundles in .atac/.memory/.
 
     Returns:
         JSON array of summary objects: [{name, description, tags}, ...]
@@ -44,7 +44,7 @@ def memory_list() -> str:
 @mcp.tool()
 def memory_read(name: str) -> str:
     """
-    Read the full content of a memory record by name.
+    Read the structured content of a memory bundle by name.
 
     Args:
         name: The slug name of the memory (e.g. 'query_holiday_station_traffic').
@@ -77,7 +77,7 @@ def memory_search(query: str) -> str:
 @mcp.tool()
 def memory_delete(name: str) -> str:
     """
-    Delete a memory record by name.
+    Delete a memory bundle by name.
 
     Args:
         name: The slug name of the memory to delete.

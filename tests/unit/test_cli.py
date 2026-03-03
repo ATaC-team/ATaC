@@ -1,8 +1,10 @@
 import os
 
+import yaml
 from click.testing import CliRunner
 
 from atac.cli.main import cli
+from atac.core.atac_memory import ATaCMemory
 
 
 def test_cli_workspace_flow(tmp_path):
@@ -89,3 +91,63 @@ def test_cli_global_cwd_flow(tmp_path):
     assert result.exit_code == 0
     assert "Trajectory Workspace: remote_flow" in result.output
     assert "fetch_data" in result.output
+
+
+def test_cli_memory_save_from_yaml_and_read(tmp_path):
+    runner = CliRunner()
+
+    source_file = tmp_path / "memory.yaml"
+    source_file.write_text(
+        yaml.safe_dump(
+            {
+                "name": "sales_memory",
+                "description": "Remember the sales ranking workflow",
+                "tags": ["sales", "ranking"],
+                "steps": [{"note": "Check date granularity first"}],
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(cli, ["-C", str(tmp_path), "memory", "save", str(source_file)])
+    assert result.exit_code == 0
+    assert "sales_memory" in result.output
+
+    entry_path = tmp_path / ".atac" / ".memory" / "sales_memory" / ATaCMemory.ENTRY_FILE
+    assert entry_path.exists()
+
+    result = runner.invoke(cli, ["-C", str(tmp_path), "memory", "read", "sales_memory"])
+    assert result.exit_code == 0
+    assert "Remember the sales ranking workflow" in result.output
+
+
+def test_cli_memory_save_from_bundle_dir(tmp_path):
+    runner = CliRunner()
+
+    source_dir = tmp_path / "memory_bundle"
+    source_dir.mkdir()
+    entry_path = source_dir / ATaCMemory.ENTRY_FILE
+    entry_path.write_text(
+        ATaCMemory._render_html(
+            {
+                "name": "bundle_memory",
+                "description": "Memory bundle with scripts",
+                "tags": ["bundle"],
+                "steps": [{"tool": "memory_search", "note": "Reuse prior bundle"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    scripts_dir = source_dir / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "helper.sh").write_text("echo helper\n", encoding="utf-8")
+
+    result = runner.invoke(cli, ["-C", str(tmp_path), "memory", "save", str(source_dir)])
+    assert result.exit_code == 0
+    assert "bundle_memory" in result.output
+
+    saved_bundle = tmp_path / ".atac" / ".memory" / "bundle_memory"
+    assert (saved_bundle / "index.html").exists()
+    assert (saved_bundle / "scripts" / "helper.sh").exists()

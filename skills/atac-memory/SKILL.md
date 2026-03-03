@@ -5,7 +5,7 @@ description: Lightweight agent memory store for recording and retrieving reusabl
 
 # ATaC Memory
 
-ATaC Memory stores reusable task patterns as YAML records in `.atac/.memory/`. Each record is a named, searchable hint — not a deterministic DSL script — giving agents flexible guidance on how to approach a class of problems.
+ATaC Memory stores reusable task patterns as directory bundles in `.atac/.memory/<name>/`. Each bundle uses `index.html` as its entry and may include helper scripts or other local assets. The structured memory payload is embedded inside `index.html`, so records remain searchable while still behaving like portable folders.
 
 > **Global Working Directory**: Like the main `atac` CLI, all memory commands respect the `-C / --cwd` flag.
 >
@@ -13,9 +13,9 @@ ATaC Memory stores reusable task patterns as YAML records in `.atac/.memory/`. E
 
 ---
 
-## Memory Record Format
+## Memory Bundle Format
 
-A memory file is a YAML document with the following fields:
+The structured payload embedded in `index.html` contains the following fields:
 
 | Field | Required | Description |
 |-------|----------|-------------|
@@ -26,6 +26,15 @@ A memory file is a YAML document with the following fields:
 
 Each **step** is flexible — it only requires `note` **or** `tool` (or both):
 
+```text
+.atac/.memory/analyze_regional_sales/
+├── index.html
+└── scripts/
+    └── helper.py
+```
+
+You can still author the structured payload in YAML/JSON first and let `atac memory save` generate the bundle, or handcraft a bundle directory and import it as-is.
+
 ```yaml
 name: analyze_regional_sales
 description: Query and rank regions by sales volume for a given date range
@@ -34,10 +43,7 @@ tags:
   - analytics
   - ranking
 steps:
-  # Note-only step: pure observation / important caveat
   - note: The data may not reflect the current year; probe actual date range before filtering
-
-  # Tool hint with args (illustrative, not enforced)
   - tool: execute_query
     note: Fetch a sample row first to confirm date format and available dimensions
     args:
@@ -47,8 +53,6 @@ steps:
       limit: 5
       measures:
         - orders.count
-
-  # Minimal tool hint (no args required)
   - tool: discover_entities
     note: When unsure about field names, discover the schema first
 ```
@@ -57,16 +61,18 @@ steps:
 
 ## CLI Commands
 
-### `atac memory save <file>`
-Validate a YAML file against the memory schema and write it to `.atac/.memory/<name>.yaml`.
+### `atac memory save <path>`
+If `<path>` is a YAML/JSON file, validate it against the memory schema and generate `.atac/.memory/<name>/index.html`. If `<path>` is a directory containing `index.html`, validate and import the whole bundle, preserving scripts and other files.
 
 ```bash
 atac memory save ./my_memory.yaml
-# → Saved memory 'query_holiday_station_traffic' → .atac/.memory/query_holiday_station_traffic.yaml
+# → Saved memory 'query_holiday_station_traffic' → .atac/.memory/query_holiday_station_traffic/index.html
+
+atac memory save ./my_memory_bundle
 ```
 
 ### `atac memory list`
-List all memory records with their descriptions and tags.
+List all memory bundles with their descriptions and tags.
 
 ```bash
 atac memory list
@@ -76,7 +82,7 @@ atac memory list
 ```
 
 ### `atac memory read <name>`
-Print the full YAML content of a record.
+Print the structured payload extracted from the bundle entry.
 
 ```bash
 atac memory read query_holiday_station_traffic
@@ -91,7 +97,7 @@ atac memory search 节假日
 ```
 
 ### `atac memory delete <name>`
-Delete a record (asks for confirmation).
+Delete a bundle (asks for confirmation).
 
 ```bash
 atac memory delete query_holiday_station_traffic
@@ -101,15 +107,15 @@ atac memory delete query_holiday_station_traffic
 
 ## MCP Server
 
-ATaC Memory also ships as a standalone MCP server, exposing the same operations as tools:
+ATaC Memory also ships as a standalone MCP server, exposing the same operations as tools. The MCP `memory_save(data)` tool generates the bundle entry for you.
 
 | Tool | Description |
 |------|-------------|
-| `memory_save(data)` | Validate and save a memory record |
+| `memory_save(data)` | Validate data and save a memory bundle |
 | `memory_list()` | Return all memory summaries as JSON |
-| `memory_read(name)` | Return a full record as JSON |
+| `memory_read(name)` | Return the structured bundle payload as JSON |
 | `memory_search(query)` | Search records, return matches as JSON |
-| `memory_delete(name)` | Delete a record |
+| `memory_delete(name)` | Delete a bundle |
 
 **Start the server:**
 ```bash
@@ -138,7 +144,7 @@ atac memory-mcp          # stdio transport (for MCP clients)
    atac memory search ranking
    ```
 
-2. **After a successful task**: save the approach as a memory record so it can be reused.
+2. **After a successful task**: save the approach as a memory bundle so it can be reused.
    ```yaml
    # ./solved_task.yaml
    name: analyze_regional_sales
@@ -154,4 +160,4 @@ atac memory-mcp          # stdio transport (for MCP clients)
    atac memory save ./solved_task.yaml
    ```
 
-3. **When reusing**: `memory read` returns the steps, guide the agent's plan accordingly.
+3. **When reusing**: `memory read` returns the embedded structured steps, guide the agent's plan accordingly.

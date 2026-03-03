@@ -470,23 +470,28 @@ def mcp():
 
 @cli.group()
 def memory():
-    """Manage ATaC Memory records (.atac/.memory/)."""
+    """Manage ATaC Memory bundles (.atac/.memory/<name>/index.html)."""
 
 
 @memory.command(name="save")
-@click.argument("file", type=click.Path(exists=True, dir_okay=False))
-def memory_save(file: str):
-    """Validate and save a memory YAML file into .atac/.memory/."""
+@click.argument("source", type=click.Path(exists=True, dir_okay=True))
+def memory_save(source: str):
+    """Save a memory bundle directory or generate one from a YAML/JSON definition file."""
     import yaml
 
     from atac.core.atac_memory import ATaCMemory
 
-    with open(file, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-
     try:
-        path = ATaCMemory.save(data)
-        click.echo(f"Saved memory '{data['name']}' → {path}")
+        source_path = Path(source)
+        if source_path.is_dir():
+            path = ATaCMemory.save_bundle(source_path)
+            name = ATaCMemory.load(path.name)["name"]
+        else:
+            with open(source_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            path = ATaCMemory.save(data)
+            name = data["name"]
+        click.echo(f"Saved memory '{name}' → {path / ATaCMemory.ENTRY_FILE}")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -494,15 +499,15 @@ def memory_save(file: str):
 
 @memory.command(name="list")
 def memory_list():
-    """List all memory records in .atac/.memory/."""
+    """List all memory bundles in .atac/.memory/."""
     from atac.core.atac_memory import ATaCMemory
 
     records = ATaCMemory.list_all()
     if not records:
-        click.echo("No memory records found in .atac/.memory/")
+        click.echo("No memory bundles found in .atac/.memory/")
         return
 
-    click.echo(f"Found {len(records)} memory record(s):\n")
+    click.echo(f"Found {len(records)} memory bundle(s):\n")
     for r in records:
         tags = f"  [{', '.join(r['tags'])}]" if r.get("tags") else ""
         click.echo(f"  {r['name']}{tags}")
@@ -513,7 +518,7 @@ def memory_list():
 @memory.command(name="read")
 @click.argument("name")
 def memory_read(name: str):
-    """Print the full content of a memory record."""
+    """Print the structured content of a memory bundle."""
     import yaml
 
     from atac.core.atac_memory import ATaCMemory

@@ -22,7 +22,7 @@ ATaC (Agentic Trajectory as Code) 提供了一套专为 AI Agent 设计的**声�
 - **精确回放**: 搭载轻量化执行引擎，按序、精确还原复杂环境下的工具执行序列。
 - **声明式控制流**: 在 YAML 轨迹中原生支持循环 (`for`) 和条件 (`if-else`) 逻辑编排。
 - **多协议总线**: 统一调度 `mcp://` (Model Context Protocol)、`bash://` 等多源执行环境。
-- **Agent Memory**: 将 AI 解决过的任务模式以 YAML 形式持久化，支持按关键词检索，用于引导后续任务。
+- **Agent Memory**: 将 AI 解决过的任务模式以目录 bundle 形式持久化，入口为 `index.html`，并支持附带脚本与按关键词检索，用于引导后续任务。
 
 ### 📋 执行器兼容性
 | 执行器 | 协议 | 状态 | 说明 |
@@ -115,14 +115,24 @@ cp -r path/to/ATaC/skills/atac ./skills/
 
 #### 4. ATaC Memory — Agent 记忆模块
 
-ATaC Memory 将 AI 执行过的任务模式以 YAML 形式保存，供后续任务检索复用：
+ATaC Memory 将 AI 执行过的任务模式保存为目录 bundle，入口文件固定为 `.atac/.memory/<name>/index.html`，目录内可附带脚本与其他资产，供后续任务检索复用：
+
+```text
+.atac/.memory/analyze_regional_sales/
+├── index.html
+└── scripts/
+    └── helper.py
+```
 
 ```bash
 # 搜索相关历史经验
 atac memory search 节假日 销售 分析
 
-# 任务完成后保存解法
+# 任务完成后从 YAML/JSON 定义生成 bundle
 atac memory save ./my_solution.yaml
+
+# 或直接导入一个现成的 memory bundle 目录
+atac memory save ./my_memory_bundle
 
 # 下次任务前读取参考
 atac memory read analyze_regional_sales
@@ -145,7 +155,7 @@ ATaC (Agentic Trajectory as Code) provides a set of **declarative trajectory rec
 * **Precise Replay**: Powered by a lightweight runtime engine to predictably execute complex tool sequences.
 * **Declarative Control Flow**: Native `for` loop and `if-else` condition routing directly within the YAML schema.
 * **Multi-protocol Bus**: Unified execution pipeline bridging `mcp://`, `bash://`, and various platform APIs.
-* **Agent Memory**: Persist solved task patterns as searchable YAML records, giving agents reusable guidance for future tasks.
+* **Agent Memory**: Persist solved task patterns as searchable directory bundles with an `index.html` entry and optional helper scripts, giving agents reusable guidance for future tasks.
 
 ### 📋 Executor Support
 
@@ -231,14 +241,24 @@ Add ATaC to the configuration of any MCP-compatible application:
 
 #### 4. ATaC Memory — Agent Memory Module
 
-ATaC Memory stores solved task patterns as YAML records for later retrieval:
+ATaC Memory stores solved task patterns as directory bundles. Each bundle lives at `.atac/.memory/<name>/index.html` and can include helper scripts or other local assets:
+
+```text
+.atac/.memory/analyze_regional_sales/
+├── index.html
+└── scripts/
+    └── helper.py
+```
 
 ```bash
 # Search for relevant past experience
 atac memory search ranking analytics
 
-# Save a solution after completing a task
+# Generate a bundle from a YAML/JSON definition file
 atac memory save ./my_solution.yaml
+
+# Or import an existing memory bundle directory
+atac memory save ./my_memory_bundle
 
 # Read the pattern before starting a similar task
 atac memory read analyze_regional_sales

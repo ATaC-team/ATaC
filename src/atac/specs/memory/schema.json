@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "ATaC Memory",
-    "description": "A memory record capturing a reusable agent task pattern with optional step hints.",
+    "description": "The structured payload embedded inside an ATaC Memory bundle entry (.atac/.memory/<name>/index.html).",
     "type": "object",
     "required": [
         "name",

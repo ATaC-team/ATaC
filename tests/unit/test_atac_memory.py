@@ -14,10 +14,24 @@ VALID_MEMORY = {
     "tags": ["test", "example"],
     "steps": [
         {"note": "First observe the data"},
-        {"tool": "execute_query", "note": "Run query with filters", "args": {"entity_name": "sections"}},
+        {
+            "tool": "execute_query",
+            "note": "Run query with filters",
+            "args": {"entity_name": "sections"},
+        },
         {"tool": "discover_entities"},
     ],
 }
+
+
+def _write_bundle(bundle_dir, data, script_name=None):
+    bundle_dir.mkdir(parents=True, exist_ok=True)
+    entry_path = bundle_dir / ATaCMemory.ENTRY_FILE
+    entry_path.write_text(ATaCMemory._render_html(data), encoding="utf-8")
+    if script_name:
+        script_path = bundle_dir / script_name
+        script_path.parent.mkdir(parents=True, exist_ok=True)
+        script_path.write_text("echo memory\n", encoding="utf-8")
 
 
 @pytest.fixture(autouse=True)
@@ -31,12 +45,14 @@ def tmp_memory_dir(tmp_path, monkeypatch):
 
 # ------------------------------------------------------------------ validate
 
+
 def test_validate_valid():
     ATaCMemory.validate(VALID_MEMORY)  # should not raise
 
 
 def test_validate_missing_name():
     import jsonschema
+
     data = {**VALID_MEMORY}
     del data["name"]
     with pytest.raises(jsonschema.ValidationError):
@@ -45,6 +61,7 @@ def test_validate_missing_name():
 
 def test_validate_missing_description():
     import jsonschema
+
     data = {**VALID_MEMORY, "description": ""}
     with pytest.raises(jsonschema.ValidationError):
         ATaCMemory.validate(data)
@@ -52,6 +69,7 @@ def test_validate_missing_description():
 
 def test_validate_invalid_name_format():
     import jsonschema
+
     data = {**VALID_MEMORY, "name": "Invalid Name With Spaces"}
     with pytest.raises(jsonschema.ValidationError):
         ATaCMemory.validate(data)
@@ -59,6 +77,7 @@ def test_validate_invalid_name_format():
 
 def test_validate_empty_steps():
     import jsonschema
+
     data = {**VALID_MEMORY, "steps": []}
     with pytest.raises(jsonschema.ValidationError):
         ATaCMemory.validate(data)
@@ -66,6 +85,7 @@ def test_validate_empty_steps():
 
 def test_validate_step_missing_note_and_tool():
     import jsonschema
+
     data = {**VALID_MEMORY, "steps": [{"args": {"foo": "bar"}}]}
     with pytest.raises(jsonschema.ValidationError):
         ATaCMemory.validate(data)
@@ -83,11 +103,24 @@ def test_validate_step_tool_only():
 
 # ------------------------------------------------------------------ save / load
 
-def test_save_creates_file(tmp_memory_dir):
+
+def test_save_creates_bundle(tmp_memory_dir):
     path = ATaCMemory.save(VALID_MEMORY)
-    assert path.exists()
-    content = yaml.safe_load(path.read_text(encoding="utf-8"))
-    assert content["name"] == "test_query"
+    assert path.is_dir()
+    entry_path = path / ATaCMemory.ENTRY_FILE
+    assert entry_path.exists()
+    assert "atac-memory-data" in entry_path.read_text(encoding="utf-8")
+
+
+def test_save_bundle_copies_scripts(tmp_path, tmp_memory_dir):
+    source_dir = tmp_path / "source_bundle"
+    _write_bundle(source_dir, VALID_MEMORY, script_name="scripts/analyze.sh")
+
+    path = ATaCMemory.save_bundle(source_dir)
+
+    assert path == ATaCMemory.resolve_path("test_query")
+    assert (path / "scripts" / "analyze.sh").exists()
+    assert ATaCMemory.load("test_query")["name"] == "test_query"
 
 
 def test_load_returns_dict(tmp_memory_dir):
@@ -95,6 +128,14 @@ def test_load_returns_dict(tmp_memory_dir):
     data = ATaCMemory.load("test_query")
     assert data["name"] == "test_query"
     assert data["description"] == VALID_MEMORY["description"]
+
+
+def test_load_legacy_yaml_returns_dict(tmp_memory_dir):
+    legacy_path = ATaCMemory.resolve_legacy_path("test_query")
+    legacy_path.write_text(yaml.safe_dump(VALID_MEMORY, sort_keys=False), encoding="utf-8")
+
+    data = ATaCMemory.load("test_query")
+    assert data["name"] == "test_query"
 
 
 def test_load_not_found(tmp_memory_dir):
@@ -109,26 +150,29 @@ def test_save_invalid_raises(tmp_memory_dir):
 
 # ------------------------------------------------------------------ list_all
 
+
 def test_list_all_empty(tmp_memory_dir):
     assert ATaCMemory.list_all() == []
 
 
-def test_list_all_returns_summaries(tmp_memory_dir):
+def test_list_all_returns_summaries(tmp_path, tmp_memory_dir):
     ATaCMemory.save(VALID_MEMORY)
+
     second = {**VALID_MEMORY, "name": "second-record", "description": "Another one", "tags": ["b"]}
-    ATaCMemory.save(second)
+    legacy_path = ATaCMemory.resolve_legacy_path("second-record")
+    legacy_path.write_text(yaml.safe_dump(second, sort_keys=False), encoding="utf-8")
 
     records = ATaCMemory.list_all()
     names = [r["name"] for r in records]
     assert "test_query" in names
     assert "second-record" in names
-    # only summary fields
     assert "steps" not in records[0]
 
 
 # ------------------------------------------------------------------ delete
 
-def test_delete_removes_file(tmp_memory_dir):
+
+def test_delete_removes_bundle_dir(tmp_memory_dir):
     ATaCMemory.save(VALID_MEMORY)
     ATaCMemory.delete("test_query")
     assert not ATaCMemory.resolve_path("test_query").exists()
@@ -140,6 +184,7 @@ def test_delete_not_found(tmp_memory_dir):
 
 
 # ------------------------------------------------------------------ search
+
 
 def test_search_by_name(tmp_memory_dir):
     ATaCMemory.save(VALID_MEMORY)
@@ -174,14 +219,11 @@ def test_search_case_insensitive(tmp_memory_dir):
 
 def test_search_multi_keywords(tmp_memory_dir):
     ATaCMemory.save(VALID_MEMORY)
-    # Match name and tag
     results = ATaCMemory.search("test example")
     assert len(results) == 1
 
-    # Match description and tag
     results = ATaCMemory.search("record test")
     assert len(results) == 1
 
-    # Missing one keyword
     results = ATaCMemory.search("test missing")
     assert len(results) == 0
