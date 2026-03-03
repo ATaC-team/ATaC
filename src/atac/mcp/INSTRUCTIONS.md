@@ -26,9 +26,17 @@ When interacting with the ATaC MCP Server, follow this general workflow:
 - **`atac_init(name: str, description: str)`**
   Creates the base workspace. Example: `atac_init("search_task", "Find data")`
 
+- **`atac_config(configs: dict)`**
+  Sets project-level configurations saved in `.atac/atac.json`.
+  Example: `atac_config({"mcp_config": ["path/to/server.json"]})`
+
 - **`atac_add_input(name: str, input_name: str, type: DataType, default: JsonValue)`**
   Adds a required input. Supported types: `string`, `integer`, `boolean`, `float`, `list`, `object`.
   Example: `atac_add_input("search_task", "cities", "list", ["Beijing", "Shanghai"])`
+
+- **`atac_add_variable(name: str, var_name: str, type: DataType, value: JsonValue)`**
+  Adds a state variable definition to an existing workspace.
+  Example: `atac_add_variable("search_task", "status", "string", "pending")`
 
 - **`atac_add_action(name: str, id: str, action: str, args: dict, at: str | None, if_condition: str | None)`**
   Adds an action (tool call).
@@ -58,6 +66,9 @@ When interacting with the ATaC MCP Server, follow this general workflow:
 
 - **`atac_show(name: str)`**
   Returns the trajectory JSON structure. Use this to understand current step nested paths.
+
+- **`atac_param(name: str)`**
+  Extracts and returns the required parameters (inputs) for a trajectory workspace.
 
 - **`atac_run(name: str, inputs: dict, config_paths: list | None)`**
   Executes the trajectory. Returns JSON outputs.

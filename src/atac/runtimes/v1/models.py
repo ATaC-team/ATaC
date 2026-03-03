@@ -5,22 +5,27 @@ from pydantic import BaseModel, ConfigDict, Field
 DataType = Literal["string", "integer", "boolean", "float", "list", "object"]
 JsonValue = str | int | float | bool | list | dict | None
 
+
 class ParsedAction(BaseModel):
     """Structured data parsed from an action URL."""
+
     scheme: Literal["mcp", "bash", "kimi"]
     server_or_cmd: str
     method: str
     query_params: dict[str, str]
+
 
 class InputDef(BaseModel):
     name: str
     type: DataType
     default: JsonValue | None = None
 
+
 class VariableDef(BaseModel):
     name: str
     type: DataType
     value: JsonValue | None = None
+
 
 class BaseStep(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -28,15 +33,18 @@ class BaseStep(BaseModel):
     timeout: int | str | None = None
     if_condition: str | None = Field(default=None, alias="if")
 
+
 class ActionStep(BaseStep):
     type: Literal["action"] = "action"
     action: str
     args: dict[str, JsonValue] | None = None
     output_to: str | None = None
 
+
 class SetStep(BaseStep):
     type: Literal["set"] = "set"
     variables: dict[str, JsonValue]
+
 
 class IfStep(BaseStep):
     type: Literal["if"] = "if"
@@ -44,18 +52,22 @@ class IfStep(BaseStep):
     then: list["Step"]
     else_: list["Step"] | None = Field(default=None, alias="else")
 
+
 class ForStep(BaseStep):
     type: Literal["for"] = "for"
     in_: str = Field(alias="in")
     item: str
     steps: list["Step"]
 
+
 Step = ActionStep | SetStep | IfStep | ForStep
+
 
 class MetaDef(BaseModel):
     name: str | None = None
     description: str | None = None
     author: str | None = None
+
 
 class Trajectory(BaseModel):
     version: Literal["1.0"]

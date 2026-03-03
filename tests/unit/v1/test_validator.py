@@ -1,4 +1,3 @@
-
 import pytest
 from jsonschema import ValidationError
 
@@ -9,40 +8,36 @@ from atac.runtimes.v1.validator import AtacValidator
 def validator():
     return AtacValidator()
 
+
 def test_basic_valid_trajectory(validator):
     data = {
         "version": "1.0",
         "meta": {
             "name": "Test Flow",
             "description": "A simple test",
-            "author": "Tester"
+            "author": "Tester",
         },
-        "inputs": [
-            {"name": "query", "type": "string", "default": "test"}
-        ],
-        "variables": [
-            {"name": "count", "type": "integer", "value": 0}
-        ],
+        "inputs": [{"name": "query", "type": "string", "default": "test"}],
+        "variables": [{"name": "count", "type": "integer", "value": 0}],
         "steps": [
             {
                 "id": "step1",
                 "type": "action",
                 "action": "mcp://browser/navigate",
-                "args": {"url": "https://example.com"}
+                "args": {"url": "https://example.com"},
             }
-        ]
+        ],
     }
     # Should not raise exception
     validator.validate(data)
 
+
 def test_missing_version(validator):
-    data = {
-        "meta": {"name": "Test"},
-        "steps": []
-    }
+    data = {"meta": {"name": "Test"}, "steps": []}
     # jsonschema error message for missing required property
     with pytest.raises(ValidationError, match="'version' is a required property"):
         validator.validate(data)
+
 
 def test_invalid_action_url(validator):
     data = {
@@ -51,13 +46,14 @@ def test_invalid_action_url(validator):
             {
                 "id": "step1",
                 "type": "action",
-                "action": "invalid://browser/navigate" # Invalid scheme
+                "action": "invalid://browser/navigate",  # Invalid scheme
             }
-        ]
+        ],
     }
     # jsonschema error message for pattern mismatch
     with pytest.raises(ValidationError, match="does not match"):
         validator.validate(data)
+
 
 def test_control_flow_if(validator):
     data = {
@@ -68,17 +64,14 @@ def test_control_flow_if(validator):
                 "type": "if",
                 "condition": "${x} > 1",
                 "then": [
-                    {
-                        "id": "true_branch",
-                        "type": "action",
-                        "action": "mcp://log/info"
-                    }
+                    {"id": "true_branch", "type": "action", "action": "mcp://log/info"}
                 ],
-                "else": []
+                "else": [],
             }
-        ]
+        ],
     }
     validator.validate(data)
+
 
 def test_control_flow_for(validator):
     data = {
@@ -90,24 +83,19 @@ def test_control_flow_for(validator):
                 "in": "${list}",
                 "item": "i",
                 "steps": [
-                        {
-                        "id": "substep",
-                        "type": "action",
-                        "action": "mcp://log/info"
-                    }
-                ]
+                    {"id": "substep", "type": "action", "action": "mcp://log/info"}
+                ],
             }
-        ]
+        ],
     }
     validator.validate(data)
 
-            
     def test_missing_step_id(self):
         # ID is optional in schema? Let's check schema.json
         # Schema definition: "id": { "type": "string" } in properties, but not in required?
         # Re-checking schema design... "所有类型的 Step 都支持以下属性: id, if, timeout"
         # In JSON schema, 'id' is in properties, but strictly speaking 'required' list for step didn't enforce 'id'.
-        # Let's check what I wrote in schema.json... 
+        # Let's check what I wrote in schema.json...
         # definition "step": properties "id", but no required ["id"].
         # So missing ID should be VALID. Let's test that it IS valid or if I want to enforce it.
         # User said "只保留step的id，不要name", implying ID is important.
@@ -127,12 +115,12 @@ def test_control_flow_for(validator):
                         {
                             "id": "true_branch",
                             "type": "action",
-                            "action": "mcp://log/info"
+                            "action": "mcp://log/info",
                         }
                     ],
-                    "else": []
+                    "else": [],
                 }
-            ]
+            ],
         }
         self.validator.validate(data)
 
@@ -146,13 +134,9 @@ def test_control_flow_for(validator):
                     "in": "${list}",
                     "item": "i",
                     "steps": [
-                         {
-                            "id": "substep",
-                            "type": "action",
-                            "action": "mcp://log/info"
-                        }
-                    ]
+                        {"id": "substep", "type": "action", "action": "mcp://log/info"}
+                    ],
                 }
-            ]
+            ],
         }
         self.validator.validate(data)
