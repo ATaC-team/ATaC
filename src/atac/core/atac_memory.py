@@ -128,24 +128,37 @@ class ATaCMemory:
     @classmethod
     def search(cls, query: str) -> list[dict[str, Any]]:
         """
-        Case-insensitive keyword search across name, description, and tags.
+        Search memory records by keywords across name, description, and tags.
+        Each word in the query must match at least one of the fields.
 
         Args:
-            query: Search string.
+            query: Search string with one or more space-separated keywords.
 
         Returns:
             List of matching summary dicts.
         """
-        q = query.lower()
+        keywords = [k.lower() for k in query.split() if k]
+        if not keywords:
+            return cls.list_all()
+
         results = []
         for record in cls.list_all():
-            haystack = " ".join(
-                [
-                    record.get("name", ""),
-                    record.get("description", ""),
-                    " ".join(record.get("tags", [])),
-                ]
-            ).lower()
-            if q in haystack:
+            # Prepare searchable fields
+            name = record.get("name", "").lower()
+            desc = record.get("description", "").lower()
+            tags = [t.lower() for t in record.get("tags", [])]
+
+            # Check if every keyword matches at least one field
+            all_match = True
+            for kw in keywords:
+                # Match name, description, or any of the tags
+                if kw in name or kw in desc or any(kw in t for t in tags):
+                    continue
+                else:
+                    all_match = False
+                    break
+
+            if all_match:
                 results.append(record)
+
         return results

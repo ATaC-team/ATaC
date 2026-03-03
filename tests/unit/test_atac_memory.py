@@ -170,3 +170,18 @@ def test_search_case_insensitive(tmp_memory_dir):
     ATaCMemory.save(VALID_MEMORY)
     results = ATaCMemory.search("TEST")
     assert len(results) == 1
+
+
+def test_search_multi_keywords(tmp_memory_dir):
+    ATaCMemory.save(VALID_MEMORY)
+    # Match name and tag
+    results = ATaCMemory.search("test example")
+    assert len(results) == 1
+
+    # Match description and tag
+    results = ATaCMemory.search("record test")
+    assert len(results) == 1
+
+    # Missing one keyword
+    results = ATaCMemory.search("test missing")
+    assert len(results) == 0
