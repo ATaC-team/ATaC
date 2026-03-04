@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -232,6 +233,64 @@ class ATaCMemory:
         raise FileNotFoundError(
             f"Memory '{name}' not found at {cls.resolve_entry_path(name)}"
         )
+
+    @classmethod
+    def run_command(
+        cls, memory_name: str, command: str, args: list[str] | None = None
+    ) -> dict[str, Any]:
+        """
+        Run a relative command from inside a memory bundle directory.
+
+        Args:
+            memory_name: The target memory bundle name.
+            command: Relative executable path inside the memory bundle.
+            args: Optional argument list passed to the command.
+
+        Returns:
+            Structured execution result including stdout/stderr and cwd.
+        """
+        bundle_dir = cls.resolve_path(memory_name)
+        if not bundle_dir.is_dir():
+            raise FileNotFoundError(
+                f"Memory bundle '{memory_name}' not found at {cls.resolve_entry_path(memory_name)}"
+            )
+
+        command_path = Path(command)
+        if command_path.is_absolute():
+            raise ValueError("Command must be a relative path inside the memory bundle")
+
+        resolved_command = (bundle_dir / command_path).resolve()
+        bundle_root = bundle_dir.resolve()
+
+        if bundle_root not in resolved_command.parents and resolved_command != bundle_root:
+            raise ValueError("Command path escapes the memory bundle directory")
+        if not resolved_command.exists():
+            raise FileNotFoundError(
+                f"Command '{command}' not found in memory bundle '{memory_name}'"
+            )
+        if not resolved_command.is_file():
+            raise ValueError(f"Command '{command}' is not a file")
+
+        argv = [str(resolved_command), *(args or [])]
+
+        try:
+            completed = subprocess.run(
+                argv,
+                cwd=bundle_dir,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except OSError as exc:
+            raise RuntimeError(f"Failed to execute '{command}': {exc}") from exc
+
+        return {
+            "cwd": str(bundle_dir.resolve()),
+            "command": argv,
+            "exit_code": completed.returncode,
+            "stdout": completed.stdout,
+            "stderr": completed.stderr,
+        }
 
     # ------------------------------------------------------------------ search
 

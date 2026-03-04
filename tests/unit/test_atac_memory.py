@@ -1,6 +1,8 @@
 """Unit tests for ATaCMemory core class."""
 
 
+import json
+
 import pytest
 import yaml
 
@@ -190,6 +192,40 @@ def test_delete_removes_bundle_dir(tmp_memory_dir):
 def test_delete_not_found(tmp_memory_dir):
     with pytest.raises(FileNotFoundError):
         ATaCMemory.delete("nonexistent")
+
+
+def test_run_command_executes_relative_file_in_bundle(tmp_memory_dir):
+    bundle_dir = ATaCMemory.save(VALID_MEMORY)
+    scripts_dir = bundle_dir / "scripts"
+    scripts_dir.mkdir()
+    script_path = scripts_dir / "print_context.py"
+    script_path.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json\n"
+        "import os\n"
+        "import sys\n"
+        "print(json.dumps({'cwd': os.getcwd(), 'args': sys.argv[1:]}))\n",
+        encoding="utf-8",
+    )
+    script_path.chmod(0o755)
+
+    result = ATaCMemory.run_command("test_query", "scripts/print_context.py", ["alpha", "beta"])
+
+    payload = json.loads(result["stdout"])
+    assert result["exit_code"] == 0
+    assert payload["cwd"] == str(bundle_dir.resolve())
+    assert payload["args"] == ["alpha", "beta"]
+    assert result["command"][0] == str(script_path.resolve())
+
+
+def test_run_command_rejects_path_escape(tmp_memory_dir):
+    ATaCMemory.save(VALID_MEMORY)
+    outside_script = tmp_memory_dir.parent / "outside.sh"
+    outside_script.write_text("#!/bin/sh\necho outside\n", encoding="utf-8")
+    outside_script.chmod(0o755)
+
+    with pytest.raises(ValueError):
+        ATaCMemory.run_command("test_query", "../outside.sh")
 
 
 # ------------------------------------------------------------------ search

@@ -113,6 +113,8 @@ cp -r path/to/ATaC/skills/atac ./skills/
 }
 ```
 
+`memory-mcp` also exposes `memory_run_command(memory_name, command, args)` for running a relative executable path inside a memory bundle directory.
+
 #### 4. ATaC Memory — Agent 记忆模块
 
 ATaC Memory 将 AI 执行过的任务模式保存为目录 bundle，入口文件固定为 `.atac/.memory/<name>/index.yaml`，目录内可附带脚本与其他资产，供后续任务检索复用：
@@ -241,6 +243,8 @@ Add ATaC to the configuration of any MCP-compatible application:
   }
 }
 ```
+
+`memory-mcp` also exposes `memory_run_command(memory_name, command, args)` for running a relative executable path inside a memory bundle directory.
 
 #### 4. ATaC Memory — Agent Memory Module
 

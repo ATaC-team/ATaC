@@ -89,5 +89,25 @@ def memory_delete(name: str) -> str:
         return f"Error: {e}"
 
 
+@mcp.tool()
+def memory_run_command(memory_name: str, command: str, args: list[str]) -> str:
+    """
+    Run a relative command from inside a memory bundle directory.
+
+    Args:
+        memory_name: The target memory bundle name.
+        command: Relative executable path inside the memory bundle.
+        args: Command arguments.
+
+    Returns:
+        JSON object with cwd, command, exit_code, stdout, and stderr.
+    """
+    try:
+        result = ATaCMemory.run_command(memory_name, command, args)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return f"Error: {e}"
+
+
 if __name__ == "__main__":
     mcp.run()
