@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.6] - 2026-03-04
+
+### 中文
+
+#### 新特性
+- **ATaC Memory MCP**: `memory-mcp` 现支持通过 `--memory-dir` 指定记忆目录。
+- **ATaC Memory MCP**: 记忆目录优先级为 `--memory-dir` > `ATAC_MEMORY_DIR` > `.atac/.memory`，便于在不同工作区和独立部署场景下复用 memory 服务。
+
+### English
+
+#### Features
+- **ATaC Memory MCP**: `memory-mcp` now supports selecting a memory directory via `--memory-dir`.
+- **ATaC Memory MCP**: Memory directory resolution now follows `--memory-dir` > `ATAC_MEMORY_DIR` > `.atac/.memory`, making the standalone memory server easier to reuse across workspaces and deployments.
+
 ## [0.4.5] - 2026-03-03
 
 ### 中文
