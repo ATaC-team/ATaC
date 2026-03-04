@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.7] - 2026-03-04
+
+### 中文
+
+#### 新特性
+- **ATaC Memory MCP**: 新增 `memory_run_command(memory_name, command, args)` 工具，可在指定 memory bundle 目录内执行相对路径命令。
+- **ATaC Memory MCP**: `memory_run_command` 会自动切换到目标记忆目录作为工作目录，并阻止绝对路径或越界路径逃逸出 memory bundle。
+
+### English
+
+#### Features
+- **ATaC Memory MCP**: Added `memory_run_command(memory_name, command, args)` to run a relative command inside a selected memory bundle directory.
+- **ATaC Memory MCP**: `memory_run_command` now uses the target memory bundle as its working directory and rejects absolute or path-escaping command targets.
+
 ## [0.4.6] - 2026-03-04
 
 ### 中文
