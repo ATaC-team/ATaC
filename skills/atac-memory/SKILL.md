@@ -120,7 +120,14 @@ ATaC Memory also ships as a standalone MCP server, exposing the same operations 
 **Start the server:**
 ```bash
 atac memory-mcp          # stdio transport (for MCP clients)
+atac memory-mcp --memory-dir /path/to/memory
 ```
+
+Priority for the memory directory used by `memory-mcp`:
+
+1. `--memory-dir`
+2. `ATAC_MEMORY_DIR`
+3. `.atac/.memory`
 
 **MCP config:**
 ```json
@@ -128,7 +135,7 @@ atac memory-mcp          # stdio transport (for MCP clients)
   "mcpServers": {
     "atac-memory": {
       "command": "uvx",
-      "args": ["atac", "memory-mcp"]
+      "args": ["atac", "memory-mcp", "--memory-dir", "/path/to/memory"]
     }
   }
 }

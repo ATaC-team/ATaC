@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import yaml
 from click.testing import CliRunner
@@ -153,3 +154,63 @@ def test_cli_memory_save_from_bundle_dir(tmp_path):
     saved_bundle = tmp_path / ".atac" / ".memory" / "bundle_memory"
     assert (saved_bundle / "index.yaml").exists()
     assert (saved_bundle / "scripts" / "helper.sh").exists()
+
+
+def test_cli_memory_mcp_respects_memory_dir_flag(tmp_path, monkeypatch):
+    runner = CliRunner()
+    captured = {}
+    monkeypatch.setattr(ATaCMemory, "BASE_DIR", Path(".atac/.memory"))
+
+    def fake_run():
+        captured["base_dir"] = ATaCMemory.BASE_DIR
+
+    monkeypatch.setattr("atac.mcp.memory_server.mcp.run", fake_run)
+
+    custom_dir = tmp_path / "custom-memory"
+    result = runner.invoke(cli, ["memory-mcp", "--memory-dir", str(custom_dir)])
+
+    assert result.exit_code == 0
+    assert captured["base_dir"] == custom_dir
+
+
+def test_cli_memory_mcp_uses_env_when_flag_missing(tmp_path, monkeypatch):
+    runner = CliRunner()
+    captured = {}
+    monkeypatch.setattr(ATaCMemory, "BASE_DIR", Path(".atac/.memory"))
+
+    def fake_run():
+        captured["base_dir"] = ATaCMemory.BASE_DIR
+
+    monkeypatch.setattr("atac.mcp.memory_server.mcp.run", fake_run)
+
+    env_dir = tmp_path / "env-memory"
+    result = runner.invoke(
+        cli,
+        ["memory-mcp"],
+        env={**os.environ, "ATAC_MEMORY_DIR": str(env_dir)},
+    )
+
+    assert result.exit_code == 0
+    assert captured["base_dir"] == env_dir
+
+
+def test_cli_memory_mcp_flag_overrides_env(tmp_path, monkeypatch):
+    runner = CliRunner()
+    captured = {}
+    monkeypatch.setattr(ATaCMemory, "BASE_DIR", Path(".atac/.memory"))
+
+    def fake_run():
+        captured["base_dir"] = ATaCMemory.BASE_DIR
+
+    monkeypatch.setattr("atac.mcp.memory_server.mcp.run", fake_run)
+
+    env_dir = tmp_path / "env-memory"
+    flag_dir = tmp_path / "flag-memory"
+    result = runner.invoke(
+        cli,
+        ["memory-mcp", "--memory-dir", str(flag_dir)],
+        env={**os.environ, "ATAC_MEMORY_DIR": str(env_dir)},
+    )
+
+    assert result.exit_code == 0
+    assert captured["base_dir"] == flag_dir

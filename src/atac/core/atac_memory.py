@@ -39,6 +39,11 @@ class ATaCMemory:
 
         jsonschema.validate(instance=data, schema=cls._schema())
 
+    @classmethod
+    def set_base_dir(cls, path: str | Path) -> None:
+        """Override the memory storage root for the current process."""
+        cls.BASE_DIR = Path(path)
+
     # ------------------------------------------------------------------ paths
 
     @classmethod

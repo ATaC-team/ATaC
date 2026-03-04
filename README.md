@@ -107,7 +107,7 @@ cp -r path/to/ATaC/skills/atac ./skills/
     },
     "atac-memory": {
       "command": "uvx",
-      "args": ["atac", "memory-mcp"]
+      "args": ["atac", "memory-mcp", "--memory-dir", "/path/to/memory"]
     }
   }
 }
@@ -136,6 +136,9 @@ atac memory save ./my_memory_bundle
 
 # 下次任务前读取参考
 atac memory read analyze_regional_sales
+
+# 启动独立 memory MCP，并显式指定记忆目录
+atac memory-mcp --memory-dir /path/to/memory
 ```
 
 将 `skills/atac-memory` 复制到 Agent 工作区的 `skills/` 目录以激活：
@@ -233,7 +236,7 @@ Add ATaC to the configuration of any MCP-compatible application:
     },
     "atac-memory": {
       "command": "uvx",
-      "args": ["atac", "memory-mcp"]
+      "args": ["atac", "memory-mcp", "--memory-dir", "/path/to/memory"]
     }
   }
 }
@@ -262,6 +265,9 @@ atac memory save ./my_memory_bundle
 
 # Read the pattern before starting a similar task
 atac memory read analyze_regional_sales
+
+# Start the standalone memory MCP with an explicit memory directory
+atac memory-mcp --memory-dir /path/to/memory
 ```
 
 Copy `skills/atac-memory` to your Agent workspace's `skills/` directory to activate:

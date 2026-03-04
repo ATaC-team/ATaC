@@ -571,10 +571,24 @@ def memory_delete(name: str):
 
 
 @cli.command(name="memory-mcp")
-def memory_mcp():
+@click.option(
+    "--memory-dir",
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
+    help="Memory storage directory for this memory MCP server instance.",
+)
+def memory_mcp(memory_dir: Path | None):
     """Start the ATaC Memory MCP server over stdio."""
+    import os
+
+    from atac.core.atac_memory import ATaCMemory
     from atac.mcp.memory_server import mcp as memory_mcp_server
 
+    resolved_memory_dir = (
+        memory_dir
+        or (Path(env_dir) if (env_dir := os.environ.get("ATAC_MEMORY_DIR")) else None)
+        or ATaCMemory.BASE_DIR
+    )
+    ATaCMemory.set_base_dir(resolved_memory_dir)
     memory_mcp_server.run()
 
 
