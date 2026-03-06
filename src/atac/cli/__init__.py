@@ -1,0 +1,2 @@
+"""ATaC CLI package."""
+

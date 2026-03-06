@@ -1,289 +1,69 @@
-import json
-import logging
-from pathlib import Path
+"""ATaC MCP server exposing graph execution."""
+
+from __future__ import annotations
+
+import os
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from atac.core.atac_api import ATaC
-from atac.runtimes.v1.models import DataType, JsonValue
-
-mcp = FastMCP("ATaC")
+from atac.bootstrap import load_service_from_bootstrap
+from atac.service import AtacService
 
 
-@mcp.tool()
-async def atac_init(name: str, description: str = "") -> str:
-    """
-    Initialize a new empty ATaC workspace.
-    Args:
-        name: Name of the workspace (or file path).
-        description: Description of the trajectory.
-    """
-    # We parse out pure names for the ATaC meta
-    safe_name = Path(name).stem if ("/" in name or "." in name) else name
+class AtacMCPTools:
+    """Structured ATaC graph operations exposed through MCP."""
 
-    builder = ATaC(name=safe_name, description=description)
-    ATaC.save_trajectory(name, builder.export())
-    return f"Successfully initialized new ATaC workspace '{safe_name}' at {name}"
+    def __init__(self, service: AtacService) -> None:
+        self.service = service
 
-
-@mcp.tool()
-async def atac_add_input(
-    name: str, input_name: str, type: DataType = "string", default: JsonValue = None
-) -> str:
-    """
-    Add an input parameter requirement to a trajectory.
-    Args:
-        name: Workspace name or path.
-        input_name: Name of the input variable.
-        type: Data type (string, number, boolean, array, dict).
-        default: Default value for the input.
-    """
-    traj_dict = ATaC.load_trajectory(name)
-    builder = ATaC.from_dict(traj_dict)
-    builder.add_input(name=input_name, input_type=type, default_value=default)  # type: ignore
-    ATaC.save_trajectory(name, builder.export())
-    return f"Successfully added input '{input_name}' to {name}"
+    def run_graph(
+        self,
+        graph_spec: str,
+        state: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        raw = self.service.run_graph(graph_spec, state or {})
+        return {
+            "ok": True,
+            "graph": graph_spec,
+            "result": raw,
+        }
 
 
-@mcp.tool()
-async def atac_add_variable(
-    name: str, var_name: str, type: DataType = "string", value: JsonValue = None
-) -> str:
-    """
-    Add a variable definition to an existing workspace.
-    Args:
-        name: Workspace name or path.
-        var_name: Name of the variable.
-        type: Data type (string, integer, boolean, float, list, object).
-        value: Initial value.
-    """
-    traj_dict = ATaC.load_trajectory(name)
-    builder = ATaC.from_dict(traj_dict)
-    builder.add_variable(name=var_name, var_type=type, initial_value=value)  # type: ignore
-    ATaC.save_trajectory(name, builder.export())
-    return f"Successfully added variable '{var_name}' to workspace '{name}'"
+def create_mcp_server(
+    service: AtacService,
+    *,
+    server_name: str = "ATaC",
+) -> FastMCP:
+    """Create a FastMCP server bound to an ATaC service."""
+    mcp = FastMCP(server_name)
+    tools = AtacMCPTools(service)
+
+    @mcp.tool()
+    def run_graph(
+        graph_spec: str,
+        state: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Run a compiled LangGraph-style app loaded from <module:function>."""
+        return tools.run_graph(graph_spec=graph_spec, state=state)
+
+    return mcp
 
 
-@mcp.tool()
-async def atac_config(configs: dict[str, JsonValue]) -> str:
-    """
-    Set project-level configurations saved in .atac/atac.json.
-    Args:
-        configs: Dictionary of configuration keys and values.
-    """
-    atac_dir = Path(".atac")
-    atac_dir.mkdir(exist_ok=True)
+def load_mcp_service_from_env() -> AtacService:
+    """Load an ATaC service for MCP use from environment variables."""
+    bootstrap = os.environ.get("ATAC_BOOTSTRAP")
+    if bootstrap:
+        return load_service_from_bootstrap(bootstrap)
 
-    config_path = atac_dir / "atac.json"
-    data = {}
-    if config_path.exists():
-        try:
-            with open(config_path, encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception:
-            pass
-
-    for key, val in configs.items():
-        data[key] = val
-
-    with open(config_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-    return "Saved configuration to .atac/atac.json"
+    return AtacService()
 
 
-@mcp.tool()
-async def atac_add_action(
-    name: str,
-    id: str,
-    action: str,
-    args: dict[str, JsonValue],
-    at: str | None = None,
-    if_condition: str | None = None,
-) -> str:
-    """
-    Add an Action step to the trajectory.
-    Args:
-        name: Workspace name or path.
-        id: Unique identifier for this step.
-        action: Tool URI (e.g. mcp://server/tool).
-        args: Dictionary of arguments for the action.
-        at: Optional dot-separated path (e.g. '0.then') to insert the step.
-        if_condition: Optional Jinja2 expression to conditionally execute this action.
-    """
-    traj_dict = ATaC.load_trajectory(name)
-    builder = ATaC.from_dict(traj_dict)
-    builder.add_action_step(
-        action_id=id, action=action, args=args, at_path=at, if_condition=if_condition
-    )
-    ATaC.save_trajectory(name, builder.export())
-    return f"Successfully added action '{id}' to {name} at position {at or 'root'}"
-
-
-@mcp.tool()
-async def atac_add_for(
-    name: str, in_expr: str, item: str, at: str | None = None
-) -> str:
-    """
-    Add a For-Loop step to the trajectory. This step will initially have an empty body.
-    Args:
-        name: Workspace name or path.
-        in_expr: Jinja2 expression evaluating to a list (e.g. '${inputs.items}').
-        item: The variable name assigned to each loop iteration.
-        at: Optional dot-separated path indicating where to insert this loop.
-    """
-    traj_dict = ATaC.load_trajectory(name)
-    builder = ATaC.from_dict(traj_dict)
-    builder.add_for_step(in_expr=in_expr, item=item, at_path=at)
-    ATaC.save_trajectory(name, builder.export())
-    return f"Successfully added for-loop over '{in_expr}' to {name} at position {at or 'root'}"
-
-
-@mcp.tool()
-async def atac_add_if(name: str, condition: str, at: str | None = None) -> str:
-    """
-    Add an If condition step to the trajectory. It will initially have empty 'then' and 'else' branches.
-    Args:
-        name: Workspace name or path.
-        condition: Jinja2 logical expression to evaluate.
-        at: Optional dot-separated path indicating where to insert this condition.
-    """
-    traj_dict = ATaC.load_trajectory(name)
-    builder = ATaC.from_dict(traj_dict)
-    builder.add_if_step(condition=condition, at_path=at)
-    ATaC.save_trajectory(name, builder.export())
-    return f"Successfully added if condition '{condition}' to {name} at position {at or 'root'}"
-
-
-@mcp.tool()
-async def atac_add_set(
-    name: str, variables: dict[str, JsonValue], at: str | None = None
-) -> str:
-    """
-    Add a Set variables step to the trajectory.
-    Args:
-        name: Workspace name or path.
-        variables: Dictionary mapping variable names to their values (can be Jinja2 expressions).
-        at: Optional dot-separated path indicating where to insert this step.
-    """
-    traj_dict = ATaC.load_trajectory(name)
-    builder = ATaC.from_dict(traj_dict)
-    builder.add_set_step(variables=variables, at_path=at)
-    ATaC.save_trajectory(name, builder.export())
-    return f"Successfully added set variables step to {name} at position {at or 'root'}"
-
-
-@mcp.tool()
-async def atac_remove_step(name: str, at: str) -> str:
-    """
-    Remove a step from the trajectory.
-    Args:
-        name: Workspace name or path.
-        at: The exact path to the step to remove (e.g. "0", "0.2.then.1").
-    """
-    traj_dict = ATaC.load_trajectory(name)
-    builder = ATaC.from_dict(traj_dict)
-    try:
-        builder.remove_step(at_path=at)
-        ATaC.save_trajectory(name, builder.export())
-        return f"Successfully removed step at path '{at}' from {name}"
-    except ValueError as e:
-        return f"Error removing step: {str(e)}"
-
-
-@mcp.tool()
-async def atac_list() -> str:
-    """
-    List all ATaC workspaces available in the current directory.
-    Returns:
-        JSON string representing a list of available workspaces.
-    """
-    workspaces = ATaC.get_workspaces()
-    return json.dumps(workspaces, indent=2, ensure_ascii=False)
-
-
-@mcp.tool()
-async def atac_show(name: str) -> str:
-    """
-    Display the current structure and contents of a trajectory file.
-    Args:
-        name: Workspace name or path.
-    """
-    traj_dict = ATaC.load_trajectory(name)
-    return json.dumps(traj_dict, indent=2, ensure_ascii=False)
-
-
-@mcp.tool()
-async def atac_param(name: str) -> str:
-    """
-    Extract and display parameters (inputs) required by a trajectory workspace.
-    Args:
-        name: Workspace name or path.
-    """
-    traj_dict = ATaC.load_trajectory(name)
-    inputs = traj_dict.get("inputs", [])
-    if not inputs:
-        return "No inputs required."
-
-    result = [f"Required inputs ({len(inputs)}):"]
-    for inp in inputs:
-        if isinstance(inp, dict):
-            inp_name = inp.get("name")
-            inp_type = inp.get("type", "string")
-            default_val = inp.get("default")
-            default = f" (default: {default_val})" if "default" in inp else ""
-        else:
-            inp_name = getattr(inp, "name", "")
-            inp_type = getattr(inp, "type", "string")
-            default_val = getattr(inp, "default", None)
-            default = f" (default: {default_val})" if default_val is not None else ""
-
-        result.append(f"  - {inp_name} [{inp_type}]{default}")
-
-    return "\n".join(result)
-
-
-@mcp.tool()
-async def atac_run(
-    name: str,
-    inputs: dict[str, JsonValue] | None = None,
-    config_paths: list[str] | None = None,
-) -> str:
-    """
-    Execute a constructed ATaC trajectory file.
-    Args:
-        name: Workspace name or path.
-        inputs: Dictionary of input values matching the trajectory's requirements.
-        config_paths: Optional paths to MCP server config JSON files.
-    """
-    traj_dict = ATaC.load_trajectory(name)
-    try:
-        logging.info(f"Running trajectory {name} with inputs: {inputs}")
-        outputs = await ATaC.execute(
-            trajectory=traj_dict, inputs=inputs or {}, mcp_config_paths=config_paths
-        )
-        return json.dumps(outputs, indent=2, ensure_ascii=False)
-    except Exception as e:
-        return f"Execution failed: {str(e)}"
-
-
-@mcp.prompt("atac-instructions")
-def atac_instructions() -> str:
-    """Get the usage instructions and examples for the ATaC Agent Skills via MCP tools."""
-    skill_path = Path(__file__).parent / "INSTRUCTIONS.md"
-    if skill_path.exists():
-        return skill_path.read_text(encoding="utf-8")
-    return "ATaC instructions not found."
-
-
-@mcp.resource("atac://schema")
-def atac_schema() -> str:
-    """Get the JSON schema for ATaC trajectories."""
-    schema_path = Path(__file__).parent.parent / "specs" / "v1" / "schema.json"
-    if schema_path.exists():
-        return schema_path.read_text(encoding="utf-8")
-    return "ATaC schema not found."
+def main() -> None:
+    """Start the ATaC MCP server over stdio."""
+    service = load_mcp_service_from_env()
+    create_mcp_server(service).run()
 
 
 if __name__ == "__main__":
-    mcp.run()
+    main()

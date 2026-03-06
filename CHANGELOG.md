@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.0] - 2026-03-06
+
+### 中文
+
+#### 新特性
+- **Graph-First Core**: 发布全新的 ATaC 1.0.0 核心，围绕 LangGraph 工作流编排与工具资产复用设计。
+- **统一工具注册**: 新增 `AtacService`，统一承接 Agent 内置工具与 MCP 工具注册，并支持在 graph 节点中通过 `tool_call(...)` 按名字调用。
+- **Python SDK**: 提供 graph 执行与工具调用 SDK，支持 Agent 直接在图代码中复用已注册资产。
+- **最小运行面**: 提供 `atac graph`、`atac mcp`、HTTP service 与 Python SDK 四种 graph 执行入口，其中 MCP 暴露单个 `run_graph` 工具。
+- **LangGraph 集成**: 提供 `atac.wrapper.langgraph` 与 `atac.subprocess`，简化 LangGraph tool 注册、MCP 工具接入与命令执行。
+
+#### 移除
+- **旧运行时移除**: 删除历史 YAML trajectory DSL、record runtime、旧 CLI/MCP 工作区管理能力，以及相关 schema、UI、memory、skills 和兼容测试面。
+- **包结构统一**: 删除 `atac2` 包，将 graph-first 核心完全切换到 `atac` 主包名下发布。
+
+### English
+
+#### Features
+- **Graph-First Core**: Released the new ATaC 1.0.0 core built around LangGraph orchestration and reusable tool assets.
+- **Unified Tool Registration**: Added `AtacService` to register both built-in agent tools and MCP tools, with named invocation through `tool_call(...)` from graph nodes.
+- **Python SDK**: Added a graph execution and tool invocation SDK so agents can reuse registered assets directly from workflow code.
+- **Minimal Runtime Surface**: Added four graph execution surfaces: `atac graph`, `atac mcp`, the HTTP service, and the Python SDK. The MCP surface exposes a single `run_graph` tool.
+- **LangGraph Integration**: Added `atac.wrapper.langgraph` and `atac.subprocess` to simplify LangGraph tool registration, MCP integration, and command execution.
+
+#### Removed
+- **Legacy Runtime Removal**: Removed the historical YAML trajectory DSL, record runtime, old CLI/MCP workspace management, and the related schema, UI, memory, skills, and compatibility test surface.
+- **Unified Package Surface**: Removed the `atac2` package and moved the graph-first core fully into the `atac` package for release.
+
 ## [0.4.7] - 2026-03-04
 
 ### 中文

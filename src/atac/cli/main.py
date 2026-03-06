@@ -1,595 +1,159 @@
-import asyncio
+"""ATaC CLI entrypoint."""
+
+from __future__ import annotations
+
 import json
-import sys
-from pathlib import Path
+import os
+from typing import Any
 
 import click
+import uvicorn
+import yaml
 
-from atac.core.atac_api import ATaC
-from atac.runtimes.v1.models import Trajectory
+from atac.bootstrap import load_service_from_bootstrap
+from atac.http_server import create_app
+from atac.mcp.server import create_mcp_server, load_mcp_service_from_env
+from atac.service import AtacService
 
 
 @click.group()
+def cli() -> None:
+    """ATaC command line interface."""
+
+
+@cli.group(name="service")
+def service_group() -> None:
+    """Manage ATaC runtime service."""
+
+
+@service_group.command(name="start")
 @click.option(
-    "--cwd",
-    "-C",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Execute commands within this specific directory.",
+    "--bootstrap",
+    required=True,
+    envvar="ATAC_BOOTSTRAP",
+    help="Service bootstrap callable in '<module_path>:<callable_name>' format.",
 )
-@click.pass_context
-def cli(ctx: click.Context, cwd: str | None):
-    """ATaC: Agentic Trajectory and Control CLI."""
-    ctx.ensure_object(dict)
-    if cwd:
-        import os
-
-        os.chdir(cwd)
-
-
-@cli.command()
-@click.argument("pairs", nargs=-1)
-def config(pairs: tuple[str, ...]):
-    """Set workspace configuration values using k=v format (e.g. mcp_config=path1 mcp_config=path2)."""
-    if not pairs:
-        click.echo("Usage: atac config key=value [key=value ...]")
-        sys.exit(1)
-
-    atac_dir = Path(".atac")
-    atac_dir.mkdir(exist_ok=True)
-
-    config_path = atac_dir / "atac.json"
-    data = {}
-    if config_path.exists():
-        try:
-            with open(config_path, encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception:
-            pass
-
-    for pair in pairs:
-        if "=" not in pair:
-            click.echo(
-                f"Error: Invalid configuration format '{pair}'. Expected key=value.",
-                err=True,
-            )
-            sys.exit(1)
-
-        key, value = pair.split("=", 1)
-
-        # If key already exists, convert to list or append
-        if key in data:
-            if isinstance(data[key], list):
-                # Only append if not duplicated
-                if value not in data[key]:
-                    data[key].append(value)
-            elif data[key] != value:
-                # Convert scalar to list
-                data[key] = [data[key], value]
-        else:
-            data[key] = value
-
-    with open(config_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-    click.echo("Saved configuration to .atac/atac.json")
+@click.option("--host", default="127.0.0.1", show_default=True, help="Bind host.")
+@click.option("--port", default=8787, type=int, show_default=True, help="Bind port.")
+def service_start(bootstrap: str, host: str, port: int) -> None:
+    """Start ATaC HTTP service with user-provided bootstrap."""
+    service = load_service_from_bootstrap(bootstrap)
+    app = create_app(service)
+    click.echo(f"ATaC service starting on http://{host}:{port}")
+    uvicorn.run(app, host=host, port=port)
 
 
-@cli.command()
-def ui():
-    """Launch the ATaC Visual Builder UI."""
-    import os
-    import sys
-    from pathlib import Path
-
-    import atac
-    from atac.cli.ui_server import start_server
-
-    # Locate the ui_static directory relative to the atac package root
-    atac_pkg_dir = Path(atac.__file__).parent
-    ui_dir = atac_pkg_dir / "ui_static"
-
-    if not ui_dir.exists() or not (ui_dir / "index.html").exists():
-        click.echo(
-            "Error: Could not locate the 'ui_static' directory. Please ensure ATaC is installed with the built UI components.",
-            err=True,
-        )
-        sys.exit(1)
-
-    cwd = os.getcwd()
-    os.environ["ATAC_WORKSPACE_DIR"] = cwd
-
-    click.echo(f"Starting ATaC UI for workspace directory: {cwd}")
-
-    try:
-        # Start the Python UI server (blocking call, simple single-threaded HTTP server)
-        # It handles API routes and serves the static files from ui_static
-        start_server(port=3001, open_browser=True)
-    except KeyboardInterrupt:
-        click.echo("\nShutting down UI...")
-
-
-@cli.command()
-@click.argument("name")
+@cli.command(name="mcp")
 @click.option(
-    "--config",
-    "-c",
-    "config_paths",
-    multiple=True,
-    help="Path to MCP server config file (can be repeated).",
+    "--server-name",
+    default="ATaC",
+    show_default=True,
+    help="MCP server name.",
 )
+def mcp_command(
+    server_name: str,
+) -> None:
+    """Start the ATaC MCP server over stdio."""
+    service = load_mcp_service_from_env()
+    create_mcp_server(service, server_name=server_name).run()
+
+
+@cli.command(name="graph")
+@click.argument("graph_spec")
 @click.option(
     "--input",
-    "-i",
     "input_pairs",
     multiple=True,
-    help="Input values as key=value pairs.",
-)
-def run(name: str, config_paths: tuple[str, ...], input_pairs: tuple[str, ...]):
-    """Execute an ATaC DSL trajectory workspace (or file)."""
-    trajectory = ATaC.load_trajectory(name)
-
-    # Parse key=value input pairs
-    inputs = {}
-    for pair in input_pairs:
-        if "=" not in pair:
-            click.echo(
-                f"Error: Invalid input format '{pair}', expected key=value.", err=True
-            )
-            sys.exit(1)
-        key, value = pair.split("=", 1)
-        inputs[key] = value
-
-    extra_configs = list(config_paths) if config_paths else None
-
-    try:
-        outputs = asyncio.run(
-            ATaC.execute(trajectory, inputs=inputs, mcp_config_paths=extra_configs)
-        )
-        click.echo(json.dumps(outputs, indent=2, ensure_ascii=False))
-    except Exception as e:
-        click.echo(f"Execution Error: {str(e)}", err=True)
-        sys.exit(1)
-
-
-@cli.command()
-@click.argument("name")
-def param(name: str):
-    """Extract and display parameters (inputs) required by a trajectory workspace."""
-    trajectory = ATaC.load_trajectory(name)
-
-    inputs = trajectory.get("inputs", [])
-    if not inputs:
-        click.echo("No inputs required.")
-        return
-
-    click.echo(f"Required inputs ({len(inputs)}):")
-    for inp in inputs:
-        # Handling depending on if it's already a parsed model or raw dict
-        if isinstance(inp, dict):
-            name = inp.get("name")
-            inp_type = inp.get("type", "string")
-            default = f" (default: {inp.get('default')})" if "default" in inp else ""
-        else:
-            # If it were a Pydantic model
-            name = getattr(inp, "name", "")
-            inp_type = getattr(inp, "type", "string")
-            default_val = getattr(inp, "default", None)
-            default = f" (default: {default_val})" if default_val is not None else ""
-
-        click.echo(f"  - {name} [{inp_type}]{default}")
-
-
-@cli.command()
-def schema():
-    """Print the JSON schema for ATaC trajectories."""
-    click.echo(json.dumps(Trajectory.model_json_schema(), indent=2, ensure_ascii=False))
-
-
-@cli.command(name="list")
-def list_workspaces():
-    """List all ATaC workspaces in the current directory."""
-    workspaces = ATaC.get_workspaces()
-    if not workspaces:
-        click.echo("No workspaces found in .atac/")
-        return
-
-    click.echo(f"Found {len(workspaces)} workspace(s):\n")
-    for ws in workspaces:
-        dir_name = ws["directory"]
-        name = ws["name"]
-        desc = ws["description"]
-        # If the directory name equals the meta name, just print it once to avoid redundancy
-        display_name = dir_name if dir_name == name else f"{dir_name} ({name})"
-        click.echo(f"  - {display_name}")
-        click.echo(f"    Description: {desc}")
-        click.echo("")
-
-
-@cli.command()
-@click.argument("name")
-@click.option(
-    "--description",
-    default="ATaC workspace",
-    help="Description of the trajectory workspace.",
-)
-def init(name: str, description: str):
-    """Initialize a new ATaC workspace under .atac/<name>/index.yaml."""
-    # We parse out pure names for the ATaC meta, fallback to file stems if raw paths passed
-    safe_name = Path(name).stem if ("/" in name or "." in name) else name
-
-    atac = ATaC(name=safe_name, description=description)
-    ATaC.save_trajectory(name, atac.export())
-
-    resolved_path = ATaC.resolve_workspace_path(name)
-    click.echo(f"Initialized ATaC workspace '{safe_name}' at {resolved_path}")
-
-
-@cli.command()
-@click.argument("name")
-@click.option(
-    "--name", "input_name", required=True, help="Name of the input parameter."
+    help="Initial graph state in key=value format. Can be repeated.",
 )
 @click.option(
-    "--type",
-    "type_",
-    type=click.Choice(["string", "integer", "boolean", "float", "list", "object"]),
-    default="string",
-    help="Data type of the input.",
+    "--bootstrap",
+    envvar="ATAC_BOOTSTRAP",
+    help="Bootstrap callable for tool registration ('module:function').",
 )
-@click.option("--default", "default_val", default=None, help="Default value.")
-def add_input(name: str, input_name: str, type_: str, default_val: str):
-    """Add an input definition to an existing workspace."""
-    data = ATaC.load_trajectory(name)
-    atac = ATaC.from_dict(data)
-
-    parsed_default = default_val
-    if default_val and type_ in ("list", "object"):
-        try:
-            parsed_default = json.loads(default_val)
-        except json.JSONDecodeError:
-            click.echo(
-                f"Warning: --default for type '{type_}' is not valid JSON, keeping as string."
-            )
-
-    atac.add_input(input_name, type_, default_value=parsed_default)
-    ATaC.save_trajectory(name, atac.export())
-    click.echo(f"Added input '{input_name}' to workspace '{name}'")
+def graph_command(
+    graph_spec: str,
+    input_pairs: tuple[str, ...],
+    bootstrap: str | None,
+) -> None:
+    """Run a compiled LangGraph-style app loaded from <module:function>."""
+    service = _build_local_service(bootstrap=bootstrap)
+    result = service.run_graph(graph_spec, _parse_input_pairs(input_pairs))
+    click.echo(json.dumps(_to_json_compatible(result), ensure_ascii=False, indent=2))
 
 
-@cli.command()
-@click.argument("name")
-@click.option("--name", "var_name", required=True, help="Name of the variable.")
+@cli.command(name="tool_call")
+@click.argument("tool_name")
 @click.option(
-    "--type",
-    "type_",
-    type=click.Choice(["string", "integer", "boolean", "float", "list", "object"]),
-    default="string",
-    help="Data type of the variable.",
-)
-@click.option("--value", default=None, help="Initial value.")
-def add_variable(name: str, var_name: str, type_: str, value: str):
-    """Add a variable definition to an existing workspace."""
-    data = ATaC.load_trajectory(name)
-    atac = ATaC.from_dict(data)
-
-    parsed_value = value
-    if value and type_ in ("list", "object"):
-        try:
-            parsed_value = json.loads(value)
-        except json.JSONDecodeError:
-            click.echo(
-                f"Warning: --value for type '{type_}' is not valid JSON, keeping as string."
-            )
-
-    atac.add_variable(var_name, type_, initial_value=parsed_value)
-    ATaC.save_trajectory(name, atac.export())
-    click.echo(f"Added variable '{var_name}' to workspace '{name}'")
-
-
-@cli.command()
-@click.argument("name")
-@click.option("--id", "action_id", required=True, help="Unique step ID.")
-@click.option("--action", required=True, help="Action URL, e.g. mcp://...")
-@click.option("--args", help="JSON string representing the arguments.")
-@click.option("--output-to", help="Variable to store the result.")
-@click.option(
-    "--at",
-    "at_path",
-    default=None,
-    help="Nested path to insert at, e.g. '0' or '0.2.then'.",
-)
-def add_action(
-    name: str, action_id: str, action: str, args: str, output_to: str, at_path: str
-):
-    """Add an action step to an existing workspace."""
-    data = ATaC.load_trajectory(name)
-    atac = ATaC.from_dict(data)
-
-    parsed_args = None
-    if args:
-        try:
-            parsed_args = json.loads(args)
-        except json.JSONDecodeError:
-            click.echo("Error: --args must be a valid JSON string.", err=True)
-            sys.exit(1)
-
-    kwargs = {}
-    if output_to:
-        kwargs["output_to"] = output_to
-
-    atac.add_action_step(action_id, action, args=parsed_args, at_path=at_path, **kwargs)
-    ATaC.save_trajectory(name, atac.export())
-    click.echo(
-        f"Added action '{action_id}' to workspace '{name}'"
-        + (f" at path '{at_path}'" if at_path else "")
-    )
-
-
-@cli.command()
-@click.argument("name")
-@click.option(
-    "--var",
-    "var_pairs",
+    "--arg",
+    "arg_pairs",
     multiple=True,
-    required=True,
-    help="Variable assignment as key=value (repeatable).",
+    help="Argument pair in key=value format. Can be repeated.",
 )
-@click.option("--at", "at_path", default=None, help="Nested path to insert at.")
-def add_set(name: str, var_pairs: tuple[str, ...], at_path: str):
-    """Add a set step to assign variables."""
-    data = ATaC.load_trajectory(name)
-    atac = ATaC.from_dict(data)
+def tool_call_command(tool_name: str, arg_pairs: tuple[str, ...]) -> None:
+    """Call a registered tool directly and print JSON output."""
+    parsed_args = _parse_key_value_pairs(arg_pairs, option_name="--arg")
+    bootstrap = _resolve_bootstrap_from_env()
+    service = _build_local_service(bootstrap=bootstrap)
 
-    variables = {}
-    for pair in var_pairs:
+    try:
+        raw = service.tool_call(tool_name, parsed_args)
+    except KeyError as exc:
+        raise click.ClickException(str(exc)) from exc
+    except Exception as exc:
+        payload = {
+            "ok": False,
+            "tool": tool_name,
+            "result": None,
+            "error": {"reason": "tool_exception", "detail": str(exc)},
+        }
+        click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+        raise click.ClickException("Tool call failed") from exc
+
+    payload = {
+        "ok": True,
+        "tool": tool_name,
+        "result": _to_json_compatible(raw),
+        "error": None,
+    }
+    click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def _build_local_service(bootstrap: str | None) -> AtacService:
+    if bootstrap:
+        return load_service_from_bootstrap(bootstrap)
+    return AtacService()
+
+
+def _parse_input_pairs(input_pairs: tuple[str, ...]) -> dict[str, Any]:
+    return _parse_key_value_pairs(input_pairs, option_name="--input")
+
+
+def _parse_key_value_pairs(pairs: tuple[str, ...], option_name: str) -> dict[str, Any]:
+    parsed: dict[str, Any] = {}
+    for pair in pairs:
         if "=" not in pair:
-            click.echo(f"Error: Invalid format '{pair}', expected key=value.", err=True)
-            sys.exit(1)
-        key, value = pair.split("=", 1)
-        variables[key] = value
-
-    atac.add_set_step(variables, at_path=at_path)
-    ATaC.save_trajectory(name, atac.export())
-    click.echo(
-        f"Added set step to workspace '{name}'"
-        + (f" at path '{at_path}'" if at_path else "")
-    )
+            raise click.BadParameter(f"Each {option_name} must be in key=value format")
+        key, raw_value = pair.split("=", maxsplit=1)
+        if not key:
+            raise click.BadParameter("Input key cannot be empty")
+        parsed[key] = yaml.safe_load(raw_value)
+    return parsed
 
 
-@cli.command()
-@click.argument("name")
-@click.option(
-    "--in", "in_expr", required=True, help="Iterable expression, e.g. '${inputs.list}'."
-)
-@click.option("--item", "loop_item", required=True, help="Loop variable name.")
-@click.option("--at", "at_path", default=None, help="Nested path to insert at.")
-def add_for(name: str, in_expr: str, loop_item: str, at_path: str):
-    """Add a for-loop step (empty body, use --at to fill it)."""
-    data = ATaC.load_trajectory(name)
-    atac = ATaC.from_dict(data)
-    atac.add_for_step(in_expr, loop_item, at_path=at_path)
-    ATaC.save_trajectory(name, atac.export())
-    click.echo(
-        f"Added for loop (item='{loop_item}') to workspace '{name}'"
-        + (f" at path '{at_path}'" if at_path else "")
-    )
-
-
-@cli.command()
-@click.argument("name")
-@click.option("--condition", required=True, help="Condition expression.")
-@click.option("--at", "at_path", default=None, help="Nested path to insert at.")
-def add_if(name: str, condition: str, at_path: str):
-    """Add an if-condition step (empty then/else, use --at to fill them)."""
-    data = ATaC.load_trajectory(name)
-    atac = ATaC.from_dict(data)
-    atac.add_if_step(condition, at_path=at_path)
-    ATaC.save_trajectory(name, atac.export())
-    click.echo(
-        f"Added if step to workspace '{name}'"
-        + (f" at path '{at_path}'" if at_path else "")
-    )
-
-
-@cli.command()
-@click.argument("name")
-@click.option(
-    "--at",
-    "at_path",
-    required=True,
-    help="Nested path of the step to remove (e.g. '0' or '0.2.then.1').",
-)
-def rm(name: str, at_path: str):
-    """Remove a specific step from a trajectory."""
-    data = ATaC.load_trajectory(name)
-    atac = ATaC.from_dict(data)
+def _to_json_compatible(value: Any) -> Any:
     try:
-        atac.remove_step(at_path)
-        ATaC.save_trajectory(name, atac.export())
-        click.echo(f"Successfully removed step '{at_path}' from workspace '{name}'")
-    except ValueError as e:
-        click.echo(f"Error removing step: {e}", err=True)
-        sys.exit(1)
+        json.dumps(value, ensure_ascii=False)
+        return value
+    except (TypeError, ValueError):
+        return str(value)
 
 
-@cli.command()
-@click.argument("name")
-def show(name: str):
-    """Show the trajectory structure with indices for navigation."""
-    data = ATaC.load_trajectory(name)
-    click.echo(f"Trajectory Workspace: {data.get('meta', {}).get('name', name)}")
-
-    steps = data.get("steps", [])
-    _show_steps(steps, level=0, prefix="")
-
-
-def _show_steps(steps: list[dict], level: int, prefix: str):
-    for i, step in enumerate(steps):
-        step_type = step.get("type")
-        step_id = step.get("id", "<no-id>")
-
-        # Determine label
-        if step_type == "action":
-            label = f"STEP {prefix}{i} [action: {step_id}] -> {step.get('action')}"
-        elif step_type == "set":
-            vars_joined = ", ".join(step.get("variables", {}).keys())
-            label = f"STEP {prefix}{i} [set] -> {vars_joined}"
-        elif step_type == "for":
-            label = f"STEP {prefix}{i} [for: {step.get('item')}] in {step.get('in')}"
-        elif step_type == "if":
-            label = f"STEP {prefix}{i} [if] {step.get('condition')}"
-        else:
-            label = f"STEP {prefix}{i} [{step_type}]"
-
-        click.echo("  " * level + label)
-
-        # Handle nesting
-        if step_type == "for" and "steps" in step:
-            _show_steps(step["steps"], level + 1, f"{prefix}{i}.")
-        elif step_type == "if":
-            if "then" in step and step["then"]:
-                click.echo("  " * (level + 1) + "[then]")
-                _show_steps(step["then"], level + 2, f"{prefix}{i}.then.")
-            if "else" in step and step["else"]:
-                click.echo("  " * (level + 1) + "[else]")
-                _show_steps(step["else"], level + 2, f"{prefix}{i}.else.")
-
-
-@cli.command()
-def mcp():
-    """Start the ATaC MCP server over stdio."""
-    from atac.mcp.server import mcp as mcp_server
-
-    mcp_server.run()
-
-
-# ---------------------------------------------------------------------------
-# atac memory  subcommand group
-# ---------------------------------------------------------------------------
-
-
-@cli.group()
-def memory():
-    """Manage ATaC Memory bundles (.atac/.memory/<name>/index.yaml)."""
-
-
-@memory.command(name="save")
-@click.argument("source", type=click.Path(exists=True, dir_okay=True))
-def memory_save(source: str):
-    """Save a memory bundle directory or generate one from a YAML/JSON definition file."""
-    import yaml
-
-    from atac.core.atac_memory import ATaCMemory
-
-    try:
-        source_path = Path(source)
-        if source_path.is_dir():
-            path = ATaCMemory.save_bundle(source_path)
-            name = ATaCMemory.load(path.name)["name"]
-        else:
-            with open(source_path, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-            path = ATaCMemory.save(data)
-            name = data["name"]
-        click.echo(f"Saved memory '{name}' → {path / ATaCMemory.ENTRY_FILE}")
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
-@memory.command(name="list")
-def memory_list():
-    """List all memory bundles in .atac/.memory/."""
-    from atac.core.atac_memory import ATaCMemory
-
-    records = ATaCMemory.list_all()
-    if not records:
-        click.echo("No memory bundles found in .atac/.memory/")
-        return
-
-    click.echo(f"Found {len(records)} memory bundle(s):\n")
-    for r in records:
-        tags = f"  [{', '.join(r['tags'])}]" if r.get("tags") else ""
-        click.echo(f"  {r['name']}{tags}")
-        click.echo(f"    {r['description']}")
-        click.echo()
-
-
-@memory.command(name="read")
-@click.argument("name")
-def memory_read(name: str):
-    """Print the structured content of a memory bundle."""
-    import yaml
-
-    from atac.core.atac_memory import ATaCMemory
-
-    try:
-        data = ATaCMemory.load(name)
-        click.echo(yaml.dump(data, allow_unicode=True, sort_keys=False), nl=False)
-    except FileNotFoundError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
-@memory.command(name="search")
-@click.argument("query")
-def memory_search(query: str):
-    """Search memory records by keyword (name / description / tags)."""
-    from atac.core.atac_memory import ATaCMemory
-
-    results = ATaCMemory.search(query)
-    if not results:
-        click.echo(f"No results for '{query}'")
-        return
-
-    click.echo(f"{len(results)} result(s) for '{query}':\n")
-    for r in results:
-        tags = f"  [{', '.join(r['tags'])}]" if r.get("tags") else ""
-        click.echo(f"  {r['name']}{tags}")
-        click.echo(f"    {r['description']}")
-        click.echo()
-
-
-@memory.command(name="delete")
-@click.argument("name")
-@click.confirmation_option(prompt="Are you sure you want to delete this memory?")
-def memory_delete(name: str):
-    """Delete a memory record by name."""
-    from atac.core.atac_memory import ATaCMemory
-
-    try:
-        ATaCMemory.delete(name)
-        click.echo(f"Deleted memory '{name}'")
-    except FileNotFoundError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
-# ---------------------------------------------------------------------------
-# atac memory-mcp  — standalone Memory MCP server
-# ---------------------------------------------------------------------------
-
-
-@cli.command(name="memory-mcp")
-@click.option(
-    "--memory-dir",
-    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
-    help="Memory storage directory for this memory MCP server instance.",
-)
-def memory_mcp(memory_dir: Path | None):
-    """Start the ATaC Memory MCP server over stdio."""
-    import os
-
-    from atac.core.atac_memory import ATaCMemory
-    from atac.mcp.memory_server import mcp as memory_mcp_server
-
-    resolved_memory_dir = (
-        memory_dir
-        or (Path(env_dir) if (env_dir := os.environ.get("ATAC_MEMORY_DIR")) else None)
-        or ATaCMemory.BASE_DIR
-    )
-    ATaCMemory.set_base_dir(resolved_memory_dir)
-    memory_mcp_server.run()
+def _resolve_bootstrap_from_env() -> str:
+    bootstrap = os.environ.get("ATAC_BOOTSTRAP")
+    if bootstrap:
+        return bootstrap
+    raise click.ClickException("ATAC_BOOTSTRAP is required for tool_call")
 
 
 if __name__ == "__main__":
