@@ -87,7 +87,7 @@ def build_graph():
 #### 1. 安装
 
 ```bash
-uv tool install .
+uv tool install atac
 ```
 
 #### 2. Python SDK
@@ -186,7 +186,7 @@ def build_graph():
 #### 1. Install
 
 ```bash
-uv tool install .
+uv tool install atac
 ```
 
 #### 2. Run via Python SDK
