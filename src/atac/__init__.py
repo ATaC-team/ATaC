@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from atac.audit import analyze_graph_file, analyze_graph_spec
 from atac.runtime_context import ToolExecutionContext, get_runtime_context
 from atac.service import AtacService
 
@@ -21,6 +22,8 @@ def get_service() -> AtacService | None:
 __all__ = [
     "AtacService",
     "ToolExecutionContext",
+    "analyze_graph_file",
+    "analyze_graph_spec",
     "get_runtime_context",
     "get_service",
     "set_service",
