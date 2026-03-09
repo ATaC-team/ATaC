@@ -26,7 +26,7 @@ ATaC 1.0.0 是一个面向 Agent 工作流的工具运行时，帮助 Agent 通�
 ### 🛠 核心能力
 
 - **Agent 工具注册**：把 Agent 内置工具统一注册到 `AtacService`。
-- **MCP 工具注册**：把外部 MCP 工具接入同一套工具空间中复用。
+- **MCP 工具注册**：把外部 MCP 工具接入同一套工具空间中复用，默认直接使用原始工具名。
 - **图代码调用 SDK**：在 graph 节点里直接使用 `get_service().tool_call(...)`。
 - **资产复用导向**：Agent 通过编排图代码，把已有工具资产重新组织成新的工作流。
 - **LangGraph 编排友好**：直接在 LangGraph graph 代码中组合和复用这些工具资产。
@@ -125,7 +125,7 @@ You can keep reusable capabilities behind registered tools, then compose new wor
 ### 🛠 Key Features
 
 - **Built-In Agent Tool Registration**: Register agent-native tools on `AtacService`.
-- **MCP Tool Registration**: Bring external MCP tools into the same reusable tool space.
+- **MCP Tool Registration**: Bring external MCP tools into the same reusable tool space, using raw tool names by default.
 - **SDK Calls from Graph Code**: Graph nodes can call `get_service().tool_call(...)`.
 - **Asset Reuse Through Graphs**: Agents build new workflows by composing graph code around existing registered tool assets.
 - **LangGraph-Friendly Composition**: Reuse those assets directly inside LangGraph workflow code.

@@ -15,7 +15,7 @@ example/langgraph/
 
 `bootstrap.py` reuses the shared service setup from
 [example/demo/bootstrap.py](/Users/mob/ATaC/example/demo/bootstrap.py), so the
-LangGraph examples can use the same `bash` and `mcp.echo` tools.
+LangGraph examples can use the same `bash` and `echo` tools.
 
 ## Run
 

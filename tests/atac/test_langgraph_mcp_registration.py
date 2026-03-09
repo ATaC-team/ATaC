@@ -51,11 +51,10 @@ async def test_mcp_client_register_to_atac_async(monkeypatch):
         pytest.skip("langchain_mcp_adapters is not available")
 
     registered = await client.register_to_atac_async(
-        prefix="mcp",
         exclude={"skip"},
     )
-    assert registered == ["mcp.echo"]
-    assert "mcp.echo" in service.list_tools()
+    assert registered == ["echo"]
+    assert "echo" in service.list_tools()
 
 
 def test_mcp_client_auto_registers_in_constructor(monkeypatch):
@@ -78,13 +77,12 @@ def test_mcp_client_auto_registers_in_constructor(monkeypatch):
     try:
         _ = MultiServerMCPClient(
             {"local": {"transport": "stdio", "command": "python", "args": ["server.py"]}},
-            prefix="mcp",
             auto_register=True,
         )
     except ImportError:
         pytest.skip("langchain_mcp_adapters is not available")
 
-    assert service.tool_call("mcp.echo", {}) == "mcp-echo-ok"
+    assert service.tool_call("echo", {}) == "mcp-echo-ok"
 
 
 def test_mcp_client_raises_when_global_service_not_set():

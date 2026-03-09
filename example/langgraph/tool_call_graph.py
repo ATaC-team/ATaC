@@ -57,7 +57,7 @@ def run_bash(state: DemoState) -> DemoState:
 def run_mcp_echo(state: DemoState) -> DemoState:
     """Call the atac-registered MCP echo tool from a graph node."""
     mcp_output = get_service().tool_call(
-        "mcp.echo",
+        "echo",
         {"text": state["bash_output"]},
     )
     return {

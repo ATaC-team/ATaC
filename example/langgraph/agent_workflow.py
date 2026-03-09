@@ -94,7 +94,7 @@ def run_bash(state: WorkflowState) -> WorkflowState:
 def run_mcp_echo(state: WorkflowState) -> WorkflowState:
     """Execute an atac-managed MCP tool."""
     mcp_output = get_service().tool_call(
-        "mcp.echo",
+        "echo",
         {"text": state["bash_output"]},
     )
     return {

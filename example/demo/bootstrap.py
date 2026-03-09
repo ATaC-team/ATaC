@@ -40,7 +40,6 @@ client = MultiServerMCPClient(
             "args": [str(Path(__file__).with_name("simple_mcp_server.py"))],
         }
     },
-    prefix="mcp",
     auto_register=True,
 )
 
