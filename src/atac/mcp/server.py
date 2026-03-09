@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import os
 import shutil
@@ -14,7 +15,7 @@ from typing import Any
 import yaml
 from mcp.server.fastmcp import FastMCP
 
-from atac.bootstrap import load_service_from_bootstrap
+from atac.bootstrap import aload_service_from_bootstrap, load_service_from_bootstrap
 from atac.service import AtacService
 
 
@@ -250,6 +251,15 @@ def load_mcp_service_from_env() -> AtacService:
     return AtacService()
 
 
+async def aload_mcp_service_from_env() -> AtacService:
+    """Load an ATaC service for MCP use from environment variables, awaiting async bootstrap."""
+    bootstrap = os.environ.get("ATAC_BOOTSTRAP")
+    if bootstrap:
+        return await aload_service_from_bootstrap(bootstrap)
+
+    return AtacService()
+
+
 def load_mcp_atac_dir_from_env() -> Path:
     """Load the graph storage directory for MCP use from environment variables."""
 
@@ -261,7 +271,7 @@ def load_mcp_atac_dir_from_env() -> Path:
 
 def main() -> None:
     """Start the ATaC MCP server over stdio."""
-    service = load_mcp_service_from_env()
+    service = asyncio.run(aload_mcp_service_from_env())
     atac_dir = load_mcp_atac_dir_from_env()
     create_mcp_server(service, atac_dir=atac_dir).run()
 

@@ -26,6 +26,31 @@ def test_service_register_langgraph_tool():
     assert "search" in service.list_tools()
 
 
+def test_service_register_langgraph_tools_bulk_with_filters_and_name_mapping():
+    service = AtacService()
+
+    @tool("search_tool")
+    def search_tool(q: str) -> str:
+        """Search test tool."""
+        return f"result:{q}"
+
+    @tool("skip_tool")
+    def skip_tool(q: str) -> str:
+        """Skip test tool."""
+        return f"skip:{q}"
+
+    registered = service.register_langgraph_tools(
+        [search_tool, skip_tool],
+        prefix="mcp",
+        exclude={"skip_tool"},
+        name_mapper=lambda name: name.replace("_tool", ""),
+    )
+
+    assert registered == ["mcp.search"]
+    assert service.list_tools() == ["mcp.search"]
+    assert service.tool_call("mcp.search", {"q": "demo"}) == "result:demo"
+
+
 def test_service_tool_call_invokes_registered_wrapper():
     service = AtacService()
 

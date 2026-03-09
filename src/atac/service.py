@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,34 @@ class AtacService:
 
     def register_langgraph_tool(self, name: str, tool: Any) -> None:
         self.registry.register(name, LangGraphToolAdapter(tool))
+
+    def register_langgraph_tools(
+        self,
+        tools: list[Any],
+        *,
+        prefix: str | None = None,
+        include: set[str] | None = None,
+        exclude: set[str] | None = None,
+        name_mapper: Callable[[str], str] | None = None,
+    ) -> list[str]:
+        include_set = include or set()
+        exclude_set = exclude or set()
+
+        registered_names: list[str] = []
+        for tool in tools:
+            raw_name = _resolve_langgraph_tool_name(tool)
+            if include_set and raw_name not in include_set:
+                continue
+            if raw_name in exclude_set:
+                continue
+            register_name = _build_register_name(
+                raw_name=raw_name,
+                prefix=prefix,
+                name_mapper=name_mapper,
+            )
+            self.register_langgraph_tool(register_name, tool)
+            registered_names.append(register_name)
+        return registered_names
 
     def list_tools(self) -> list[str]:
         return self.registry.list_names()
@@ -59,3 +88,32 @@ class AtacService:
 
         app = self.load_graph(graph_spec)
         return await ainvoke_graph(app, state)
+
+
+def _resolve_langgraph_tool_name(tool: Any) -> str:
+    tool_name = getattr(tool, "name", None)
+    if not isinstance(tool_name, str) or not tool_name.strip():
+        raise ValueError("Each LangGraph tool must expose a non-empty 'name' attribute")
+
+    if not (
+        callable(getattr(tool, "invoke", None))
+        or callable(getattr(tool, "ainvoke", None))
+        or callable(tool)
+    ):
+        raise TypeError("LangGraph tool must provide invoke/ainvoke or be callable")
+
+    return tool_name
+
+
+def _build_register_name(
+    *,
+    raw_name: str,
+    prefix: str | None,
+    name_mapper: Callable[[str], str] | None,
+) -> str:
+    mapped = name_mapper(raw_name) if name_mapper else raw_name
+    if not isinstance(mapped, str) or not mapped.strip():
+        raise ValueError("Mapped tool name must be a non-empty string")
+    if prefix:
+        return f"{prefix}.{mapped}"
+    return mapped

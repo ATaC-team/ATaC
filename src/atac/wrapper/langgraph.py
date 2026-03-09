@@ -70,30 +70,18 @@ else:
             name_mapper: Callable[[str], str] | None = None,
         ) -> list[str]:
             service = _require_global_service()
-            include_set = self._default_include if include is None else include
-            exclude_set = self._default_exclude if exclude is None else exclude
             resolved_prefix = self._default_prefix if prefix is None else prefix
             resolved_mapper = (
                 self._default_name_mapper if name_mapper is None else name_mapper
             )
-
             discovered_tools = await _get_mcp_tools(self)
-
-            registered_names: list[str] = []
-            for discovered_tool in discovered_tools:
-                discovered_name = _resolve_tool_name(discovered_tool)
-                if include_set and discovered_name not in include_set:
-                    continue
-                if discovered_name in exclude_set:
-                    continue
-                register_name = _build_register_name(
-                    raw_name=discovered_name,
-                    prefix=resolved_prefix,
-                    name_mapper=resolved_mapper,
-                )
-                service.register_langgraph_tool(register_name, discovered_tool)
-                registered_names.append(register_name)
-            return registered_names
+            return service.register_langgraph_tools(
+                discovered_tools,
+                prefix=resolved_prefix,
+                include=self._default_include if include is None else include,
+                exclude=self._default_exclude if exclude is None else exclude,
+                name_mapper=resolved_mapper,
+            )
 
         def register_to_atac(
             self,
@@ -143,27 +131,6 @@ async def _get_mcp_tools(client: Any) -> list[Any]:
     if inspect.isawaitable(maybe_tools):
         maybe_tools = await maybe_tools
     return list(maybe_tools)
-
-
-def _resolve_tool_name(tool_obj: Any) -> str:
-    tool_name = getattr(tool_obj, "name", None)
-    if not isinstance(tool_name, str) or not tool_name.strip():
-        raise ValueError("Each MCP tool must expose a non-empty 'name' attribute")
-    return tool_name
-
-
-def _build_register_name(
-    *,
-    raw_name: str,
-    prefix: str | None,
-    name_mapper: Callable[[str], str] | None,
-) -> str:
-    mapped = name_mapper(raw_name) if name_mapper else raw_name
-    if not isinstance(mapped, str) or not mapped.strip():
-        raise ValueError("Mapped tool name must be a non-empty string")
-    if prefix:
-        return f"{prefix}.{mapped}"
-    return mapped
 
 
 def _require_global_service() -> AtacService:
