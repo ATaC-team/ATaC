@@ -124,6 +124,22 @@ def test_mcp_tools_save_graph_and_list_graph(tmp_path):
             "outputs": [{"name": "plan", "type": "object"}],
             "example_state": {"destination": "Hangzhou"},
         },
+    }
+
+    graph_payload_with_code = tools.get_graph("trip_planner", include_code=True)
+
+    assert graph_payload_with_code == {
+        "ok": True,
+        "name": "trip_planner",
+        "directory": str(tmp_path / "trip_planner"),
+        "description": {
+            "name": "trip_planner",
+            "description": "Plan a trip with saved graph code.",
+            "graph_spec": "trip_planner.graph:build_graph",
+            "inputs": [{"name": "destination", "type": "string", "required": True}],
+            "outputs": [{"name": "plan", "type": "object"}],
+            "example_state": {"destination": "Hangzhou"},
+        },
         "graph_code": graph_code,
     }
 

@@ -88,7 +88,7 @@ class AtacMCPTools:
             "graph_spec": f"{graph_name}.graph:build_graph",
         }
 
-    def get_graph(self, name: str) -> dict[str, Any]:
+    def get_graph(self, name: str, include_code: bool = False) -> dict[str, Any]:
         graph_name = _validate_graph_name(name)
         graph_dir = self.atac_dir / graph_name
         description_path = graph_dir / "description.yaml"
@@ -102,13 +102,15 @@ class AtacMCPTools:
         if not isinstance(raw, dict):
             raise ValueError(f"Graph description '{description_path}' must contain a YAML object")
 
-        return {
+        result = {
             "ok": True,
             "name": graph_name,
             "directory": str(graph_dir),
             "description": dict(raw),
-            "graph_code": graph_path.read_text(encoding="utf-8"),
         }
+        if include_code:
+            result["graph_code"] = graph_path.read_text(encoding="utf-8")
+        return result
 
     def list_graph(self) -> list[dict[str, Any]]:
         graphs: list[dict[str, Any]] = []
@@ -206,9 +208,9 @@ def create_mcp_server(
         return tools.list_graph()
 
     @mcp.tool()
-    def get_graph(name: str) -> dict[str, Any]:
-        """Return the saved graph source code and description metadata."""
-        return tools.get_graph(name)
+    def get_graph(name: str, include_code: bool = False) -> dict[str, Any]:
+        """Return saved graph metadata and optionally include graph source code."""
+        return tools.get_graph(name, include_code=include_code)
 
     return mcp
 
