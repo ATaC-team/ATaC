@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] - 2026-03-09
+
+### 中文
+
+#### 新特性
+- **ATaC MCP Graph Catalog**: `atac mcp` 现在要求通过 `ATAC_DIR` 指定 graph 存储目录，并新增 `save_graph`、`list_graph`、`get_graph` 三个工具，支持 graph 资产的保存、发现和读取。
+- **Graph Metadata Contract**: `save_graph` 现在要求同时提供 `inputs`、`outputs` 和 `example_state`，让 graph 描述可以直接服务于 Agent 的发现和复用。
+- **Graph Name Resolution**: `run_graph` 现在除了 `<module>:<factory>` 形式外，也支持直接传入 graph 名称，并自动解析到 `<name>.graph:build_graph`。
+
+#### 变更
+- **Raw MCP Tool Names by Default**: MCP 工具默认使用原始工具名注册，不再默认附加 `mcp.` 前缀，减少 Agent 可见名称和 ATaC 注册名称不一致的问题。
+- **Selective Graph Retrieval**: `get_graph` 默认只返回 `description.yaml` 元信息，显式传入 `include_code=true` 时才返回 `graph.py` 源码。
+- **Tool Guidance**: `save_graph` 的工具说明补充了最小 graph 模板和编写约束，帮助 Agent 生成可加载的 graph 代码。
+
+#### 修正
+- **Async MCP Graph Execution**: 修复了 `atac mcp` 在事件循环中执行异步 graph 时触发 `Cannot invoke async graph while an event loop is already running` 的问题。
+
+### English
+
+#### Features
+- **ATaC MCP Graph Catalog**: `atac mcp` now requires `ATAC_DIR` for graph storage and adds `save_graph`, `list_graph`, and `get_graph` for persisting, discovering, and inspecting reusable graphs.
+- **Graph Metadata Contract**: `save_graph` now requires `inputs`, `outputs`, and `example_state` so graph descriptions can be consumed directly by agents.
+- **Graph Name Resolution**: `run_graph` now accepts either `<module>:<factory>` or a plain graph name, resolving the latter to `<name>.graph:build_graph`.
+
+#### Changed
+- **Raw MCP Tool Names by Default**: MCP tools now register under their raw names by default instead of automatically adding an `mcp.` prefix, keeping agent-visible and ATaC-registered names aligned.
+- **Selective Graph Retrieval**: `get_graph` now returns only `description.yaml` metadata by default and includes `graph.py` source only when `include_code=true` is requested.
+- **Tool Guidance**: Expanded the `save_graph` tool description with a minimal graph template and authoring constraints to improve first-pass graph generation.
+
+#### Fixed
+- **Async MCP Graph Execution**: Fixed `atac mcp` so async graphs can run inside an active event loop without raising `Cannot invoke async graph while an event loop is already running`.
+
 ## [1.0.0] - 2026-03-06
 
 ### 中文
