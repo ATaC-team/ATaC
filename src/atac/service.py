@@ -17,6 +17,7 @@ class AtacService:
 
     def __init__(self, registry: ToolRegistry | None = None) -> None:
         self.registry = registry or ToolRegistry()
+        self._agents: dict[str, Any] = {}
 
     def register_tool(self, name: str, wrapper: ToolWrapper) -> None:
         self.registry.register(name, wrapper)
@@ -54,6 +55,26 @@ class AtacService:
 
     def list_tools(self) -> list[str]:
         return self.registry.list_names()
+
+    def register_agent(self, name: str, agent: Any) -> None:
+        normalized = _validate_runtime_binding_name(name, kind="Agent")
+        if not (
+            callable(getattr(agent, "invoke", None))
+            or callable(getattr(agent, "ainvoke", None))
+            or callable(agent)
+        ):
+            raise TypeError("Agent must provide invoke/ainvoke or be callable")
+        self._agents[normalized] = agent
+
+    def get_agent(self, name: str = "default") -> Any:
+        normalized = _validate_runtime_binding_name(name, kind="Agent")
+        try:
+            return self._agents[normalized]
+        except KeyError as exc:
+            raise KeyError(f"Agent '{normalized}' is not registered") from exc
+
+    def list_agents(self) -> list[str]:
+        return sorted(self._agents.keys())
 
     def tool_call(
         self,
@@ -103,6 +124,12 @@ def _resolve_langgraph_tool_name(tool: Any) -> str:
         raise TypeError("LangGraph tool must provide invoke/ainvoke or be callable")
 
     return tool_name
+
+
+def _validate_runtime_binding_name(name: str, *, kind: str) -> str:
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError(f"{kind} name must be a non-empty string")
+    return name.strip()
 
 
 def _build_register_name(

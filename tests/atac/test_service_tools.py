@@ -26,6 +26,101 @@ def test_service_register_langgraph_tool():
     assert "search" in service.list_tools()
 
 
+def test_service_register_and_get_agent():
+    service = AtacService()
+
+    class FakeAgent:
+        def invoke(self, payload):
+            return {"payload": payload}
+
+    agent = FakeAgent()
+    service.register_agent("planner", agent)
+
+    assert service.get_agent("planner") is agent
+    assert service.list_agents() == ["planner"]
+
+
+def test_service_get_agent_defaults_to_default_registration():
+    service = AtacService()
+
+    class FakeAgent:
+        def invoke(self, payload):
+            return payload
+
+    agent = FakeAgent()
+    service.register_agent("default", agent)
+
+    assert service.get_agent() is agent
+
+
+def test_service_get_agent_raises_for_unknown_agent():
+    service = AtacService()
+
+    with pytest.raises(KeyError, match="Agent 'missing' is not registered"):
+        service.get_agent("missing")
+
+
+def test_service_run_graph_can_access_registered_agent(tmp_path, monkeypatch):
+    service = AtacService()
+
+    class FakeAgent:
+        def invoke(self, payload):
+            return {"result": payload["question"].upper()}
+
+    service.register_agent("planner", FakeAgent())
+
+    pkg_dir = tmp_path / "graphpkg_agent"
+    pkg_dir.mkdir()
+    (pkg_dir / "__init__.py").write_text("", encoding="utf-8")
+    (pkg_dir / "graph_module.py").write_text(
+        "from atac import get_service\n"
+        "class FakeGraph:\n"
+        "    def invoke(self, state):\n"
+        "        agent = get_service().get_agent('planner')\n"
+        "        return agent.invoke({'question': state['question']})\n"
+        "def build_graph():\n"
+        "    return FakeGraph()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    result = service.run_graph("graphpkg_agent.graph_module:build_graph", {"question": "hello"})
+
+    assert result == {"result": "HELLO"}
+
+
+def test_service_run_graph_can_access_default_agent(tmp_path, monkeypatch):
+    service = AtacService()
+
+    class FakeAgent:
+        def invoke(self, payload):
+            return {"result": payload["question"].upper()}
+
+    service.register_agent("default", FakeAgent())
+
+    pkg_dir = tmp_path / "graphpkg_default_agent"
+    pkg_dir.mkdir()
+    (pkg_dir / "__init__.py").write_text("", encoding="utf-8")
+    (pkg_dir / "graph_module.py").write_text(
+        "from atac import get_service\n"
+        "class FakeGraph:\n"
+        "    def invoke(self, state):\n"
+        "        agent = get_service().get_agent()\n"
+        "        return agent.invoke({'question': state['question']})\n"
+        "def build_graph():\n"
+        "    return FakeGraph()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    result = service.run_graph(
+        "graphpkg_default_agent.graph_module:build_graph",
+        {"question": "hello"},
+    )
+
+    assert result == {"result": "HELLO"}
+
+
 def test_service_register_langgraph_tools_bulk_with_filters_and_name_mapping():
     service = AtacService()
 

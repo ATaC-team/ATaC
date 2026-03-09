@@ -198,6 +198,10 @@ def create_mcp_server(
         `graph_code` should define a zero-argument `build_graph()` and call tools with
         `get_service().tool_call(...)` inside graph nodes.
 
+        If the graph needs a runtime-provided agent, set `requires_agent=true`.
+        In that case graph nodes may call `get_service().get_agent()` to use the
+        default registered agent, or `get_service().get_agent("name")` for a named agent.
+
         Minimal example:
         from typing import TypedDict
         from langgraph.graph import StateGraph, START, END
@@ -216,6 +220,27 @@ def create_mcp_server(
             graph.add_node("run_query", run_query)
             graph.add_edge(START, "run_query")
             graph.add_edge("run_query", END)
+            return graph.compile()
+
+        Agent example (only when `requires_agent=true`):
+        from typing import TypedDict
+        from langgraph.graph import StateGraph, START, END
+        from atac import get_service
+
+        class GraphState(TypedDict, total=False):
+            question: str
+            answer: object
+
+        async def ask_agent(state: GraphState) -> GraphState:
+            agent = get_service().get_agent()
+            result = await agent.ainvoke({"question": state["question"]})
+            return {"answer": result}
+
+        def build_graph():
+            graph = StateGraph(GraphState)
+            graph.add_node("ask_agent", ask_agent)
+            graph.add_edge(START, "ask_agent")
+            graph.add_edge("ask_agent", END)
             return graph.compile()
 
         Keep `inputs`, `outputs`, and `example_state` consistent with the graph state.
