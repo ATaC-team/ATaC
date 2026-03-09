@@ -192,7 +192,33 @@ def create_mcp_server(
         outputs: list[dict[str, Any]],
         example_state: dict[str, Any],
     ) -> dict[str, Any]:
-        """Save graph code and description metadata into the configured ATAC_DIR."""
+        """Save a reusable ATaC graph package into ATAC_DIR.
+
+        `graph_code` should define a zero-argument `build_graph()` and call tools with
+        `get_service().tool_call(...)` inside graph nodes.
+
+        Minimal example:
+        from typing import TypedDict
+        from langgraph.graph import StateGraph, START, END
+        from atac import get_service
+
+        class GraphState(TypedDict, total=False):
+            query: str
+            result: object
+
+        def run_query(state: GraphState) -> GraphState:
+            result = get_service().tool_call("some_tool", {"query": state["query"]})
+            return {"result": result}
+
+        def build_graph():
+            graph = StateGraph(GraphState)
+            graph.add_node("run_query", run_query)
+            graph.add_edge(START, "run_query")
+            graph.add_edge("run_query", END)
+            return graph.compile()
+
+        Keep `inputs`, `outputs`, and `example_state` consistent with the graph state.
+        """
         return tools.save_graph(
             name=name,
             graph_code=graph_code,
