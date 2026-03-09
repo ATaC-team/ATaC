@@ -28,13 +28,13 @@ class AtacMCPTools:
         if str(self.atac_dir) not in sys.path:
             sys.path.insert(0, str(self.atac_dir))
 
-    def run_graph(
+    async def run_graph(
         self,
         graph_spec: str,
         state: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         resolved_graph_spec = self._resolve_graph_spec(graph_spec)
-        raw = self.service.run_graph(resolved_graph_spec, state or {})
+        raw = await self.service.arun_graph(resolved_graph_spec, state or {})
         return {
             "ok": True,
             "graph": graph_spec,
@@ -174,12 +174,12 @@ def create_mcp_server(
     tools = AtacMCPTools(service, atac_dir)
 
     @mcp.tool()
-    def run_graph(
+    async def run_graph(
         graph_spec: str,
         state: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Run a compiled LangGraph-style app loaded from <module:function>."""
-        return tools.run_graph(graph_spec=graph_spec, state=state)
+        return await tools.run_graph(graph_spec=graph_spec, state=state)
 
     @mcp.tool()
     def save_graph(

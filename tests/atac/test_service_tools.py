@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from langchain_core.tools import tool
 
 from atac import get_runtime_context
@@ -104,5 +105,35 @@ def test_service_run_graph_executes_graph_with_bound_service(tmp_path, monkeypat
     monkeypatch.syspath_prepend(str(tmp_path))
 
     result = service.run_graph("graphpkg2.graph_module:build_graph", {"who": "alice"})
+
+    assert result == {"result": "ALICE"}
+
+
+@pytest.mark.asyncio
+async def test_service_arun_graph_executes_async_graph_with_bound_service(tmp_path, monkeypatch):
+    service = AtacService()
+
+    class UpperWrapper:
+        def invoke(self, args, context):
+            _ = context
+            return str(args["text"]).upper()
+
+    service.register_tool("upper", UpperWrapper())
+
+    pkg_dir = tmp_path / "graphpkg_async"
+    pkg_dir.mkdir()
+    (pkg_dir / "__init__.py").write_text("", encoding="utf-8")
+    (pkg_dir / "graph_module.py").write_text(
+        "from atac import get_service\n"
+        "class FakeGraph:\n"
+        "    async def ainvoke(self, state):\n"
+        "        return {'result': get_service().tool_call('upper', {'text': state['who']})}\n"
+        "def build_graph():\n"
+        "    return FakeGraph()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    result = await service.arun_graph("graphpkg_async.graph_module:build_graph", {"who": "alice"})
 
     assert result == {"result": "ALICE"}

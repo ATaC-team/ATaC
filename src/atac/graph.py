@@ -64,6 +64,22 @@ def invoke_graph(app: Any, state: dict[str, Any]) -> Any:
     raise TypeError("Graph app must expose invoke/ainvoke")
 
 
+async def ainvoke_graph(app: Any, state: dict[str, Any]) -> Any:
+    """Invoke a compiled graph asynchronously."""
+    ainvoke = getattr(app, "ainvoke", None)
+    if callable(ainvoke):
+        return await ainvoke(state)
+
+    invoke = getattr(app, "invoke", None)
+    if callable(invoke):
+        result = invoke(state)
+        if inspect.isawaitable(result):
+            return await result
+        return result
+
+    raise TypeError("Graph app must expose invoke/ainvoke")
+
+
 def _is_graph_app(app: Any) -> bool:
     return callable(getattr(app, "invoke", None)) or callable(getattr(app, "ainvoke", None))
 

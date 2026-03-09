@@ -12,7 +12,7 @@ class _GraphService(AtacService):
         super().__init__()
         self.calls: list[tuple[str, dict[str, object]]] = []
 
-    def run_graph(
+    async def arun_graph(
         self,
         graph_spec: str,
         state: dict[str, object],
@@ -21,11 +21,12 @@ class _GraphService(AtacService):
         return {"graph_spec": graph_spec, "state": state}
 
 
-def test_mcp_tools_run_graph(tmp_path):
+@pytest.mark.asyncio
+async def test_mcp_tools_run_graph(tmp_path):
     service = _GraphService()
     tools = AtacMCPTools(service, tmp_path)
 
-    result = tools.run_graph("demo.graph:build_graph", {"who": "alice"})
+    result = await tools.run_graph("demo.graph:build_graph", {"who": "alice"})
 
     assert result == {
         "ok": True,
@@ -38,11 +39,12 @@ def test_mcp_tools_run_graph(tmp_path):
     assert service.calls == [("demo.graph:build_graph", {"who": "alice"})]
 
 
-def test_mcp_tools_run_graph_resolves_saved_graph_name(tmp_path):
+@pytest.mark.asyncio
+async def test_mcp_tools_run_graph_resolves_saved_graph_name(tmp_path):
     service = _GraphService()
     tools = AtacMCPTools(service, tmp_path)
 
-    result = tools.run_graph("demo_graph", {"who": "alice"})
+    result = await tools.run_graph("demo_graph", {"who": "alice"})
 
     assert result == {
         "ok": True,

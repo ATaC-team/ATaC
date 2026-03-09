@@ -53,3 +53,9 @@ class AtacService:
 
         app = self.load_graph(graph_spec)
         return invoke_graph(app, state)
+
+    async def arun_graph(self, graph_spec: str, state: dict[str, Any]) -> Any:
+        from atac.graph import ainvoke_graph
+
+        app = self.load_graph(graph_spec)
+        return await ainvoke_graph(app, state)
