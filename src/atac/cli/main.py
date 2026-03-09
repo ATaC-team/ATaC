@@ -12,7 +12,10 @@ import yaml
 
 from atac.bootstrap import load_service_from_bootstrap
 from atac.http_server import create_app
-from atac.mcp.server import create_mcp_server, load_mcp_service_from_env
+from atac.mcp.server import (
+    create_mcp_server,
+    load_mcp_service_from_env,
+)
 from atac.service import AtacService
 
 
@@ -45,17 +48,24 @@ def service_start(bootstrap: str, host: str, port: int) -> None:
 
 @cli.command(name="mcp")
 @click.option(
+    "--atac-dir",
+    envvar="ATAC_DIR",
+    required=True,
+    help="Directory used to store and load graph packages for MCP.",
+)
+@click.option(
     "--server-name",
     default="ATaC",
     show_default=True,
     help="MCP server name.",
 )
 def mcp_command(
+    atac_dir: str,
     server_name: str,
 ) -> None:
     """Start the ATaC MCP server over stdio."""
     service = load_mcp_service_from_env()
-    create_mcp_server(service, server_name=server_name).run()
+    create_mcp_server(service, atac_dir=atac_dir, server_name=server_name).run()
 
 
 @cli.command(name="graph")

@@ -62,8 +62,9 @@ def test_cli_mcp_loads_service_and_runs_server(monkeypatch):
         captured["loaded"] = True
         return fake_service
 
-    def fake_create_mcp_server(service, server_name: str):
+    def fake_create_mcp_server(service, *, atac_dir: str, server_name: str):
         captured["service"] = service
+        captured["atac_dir"] = atac_dir
         captured["server_name"] = server_name
         return FakeMCPServer()
 
@@ -74,6 +75,8 @@ def test_cli_mcp_loads_service_and_runs_server(monkeypatch):
         cli,
         [
             "mcp",
+            "--atac-dir",
+            "/tmp/atac-graphs",
             "--server-name",
             "ATaC Test MCP",
         ],
@@ -82,8 +85,19 @@ def test_cli_mcp_loads_service_and_runs_server(monkeypatch):
     assert result.exit_code == 0
     assert captured["loaded"] is True
     assert captured["service"] is fake_service
+    assert captured["atac_dir"] == "/tmp/atac-graphs"
     assert captured["server_name"] == "ATaC Test MCP"
     assert captured["ran"] is True
+
+
+def test_cli_mcp_requires_atac_dir(monkeypatch):
+    runner = CliRunner()
+    monkeypatch.setattr("atac.cli.main.load_mcp_service_from_env", lambda: AtacService())
+
+    result = runner.invoke(cli, ["mcp"], env={})
+
+    assert result.exit_code != 0
+    assert "ATAC_DIR" in result.output or "--atac-dir" in result.output
 
 
 def test_cli_graph_loads_graph_and_binds_service(tmp_path, monkeypatch):
