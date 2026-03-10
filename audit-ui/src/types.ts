@@ -23,6 +23,7 @@ export interface AuditNode {
   callable: string | null;
   kind: "logic" | "tool" | "agent" | "mixed";
   isAsync: boolean;
+  docstring: string | null;
   source: string | null;
   toolCalls: AuditToolCall[];
   agentCalls: AuditAgentCall[];

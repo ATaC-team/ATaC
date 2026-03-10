@@ -31,9 +31,12 @@ textarea {
   display: grid;
   grid-template-columns: 420px minmax(0, 1fr);
   height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sidebar {
+  min-width: 0;
   overflow: auto;
   border-right: 1px solid #c6b9a3;
   background: rgba(255, 251, 245, 0.9);
@@ -96,6 +99,7 @@ textarea {
 }
 
 .panel {
+  min-width: 0;
   margin-bottom: 16px;
   padding: 16px;
   border: 1px solid #d4c5af;
@@ -111,14 +115,14 @@ textarea {
   color: #8a7458;
 }
 
-.graph-list,
-.node-audit {
+.graph-list {
   display: grid;
   gap: 10px;
 }
 
 .graph-item {
   width: 100%;
+  min-width: 0;
   text-align: left;
   border: 1px solid #dbcdb7;
   background: #fffaf2;
@@ -131,6 +135,8 @@ textarea {
 .graph-item strong,
 .graph-item span {
   display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .graph-item span {
@@ -147,21 +153,34 @@ textarea {
 .inspector {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .inspector__row {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px dashed #dbcdb7;
   padding-bottom: 8px;
+  min-width: 0;
 }
 
 .inspector__row span {
   color: #7b6c5c;
+  flex: 0 0 112px;
+}
+
+.inspector__row strong {
+  min-width: 0;
+  flex: 1 1 auto;
+  text-align: right;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .node-audit__card {
+  min-width: 0;
   border-radius: 18px;
   border: 1px solid #d6cab8;
   padding: 12px;
@@ -184,11 +203,22 @@ textarea {
   background: #e6efdf;
 }
 
+.react-flow__node.selected {
+  box-shadow: 0 0 0 3px rgba(139, 78, 45, 0.25);
+}
+
 .node-audit__head {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
+  min-width: 0;
+}
+
+.node-audit__head strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .node-audit__head span {
@@ -200,9 +230,14 @@ textarea {
 
 .node-audit__meta {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 10px;
+  min-width: 0;
+}
+
+.node-audit__meta > div {
+  min-width: 0;
 }
 
 .node-audit__meta label {
@@ -217,25 +252,111 @@ textarea {
 .node-audit__meta p {
   margin: 0;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.node-audit__docstring {
+  margin-bottom: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(73, 54, 35, 0.1);
+}
+
+.node-audit__docstring label {
+  display: block;
+  margin-bottom: 6px;
+  color: #7b6c5c;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.node-audit__docstring p {
+  margin: 0;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.code-details {
+  border: 1px solid rgba(73, 54, 35, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.4);
+  overflow: hidden;
+}
+
+.code-details summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 14px;
+  font-weight: 700;
+  color: #6c5842;
+  user-select: none;
+}
+
+.code-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.code-details[open] summary {
+  border-bottom: 1px solid rgba(73, 54, 35, 0.12);
 }
 
 pre {
   margin: 0;
   padding: 12px;
   border-radius: 14px;
+  max-width: 100%;
   overflow: auto;
   background: rgba(255, 255, 255, 0.66);
   border: 1px solid rgba(73, 54, 35, 0.1);
   line-height: 1.45;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.code-block {
+  color: #2a2118;
+}
+
+.token {
+  font-weight: 600;
+}
+
+.token-keyword {
+  color: #8b4e2d;
+}
+
+.token-string {
+  color: #2f6b3b;
+}
+
+.token-call {
+  color: #315f9d;
 }
 
 .canvas {
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0)),
     transparent;
+}
+
+.canvas__flow {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.canvas__flow .react-flow {
+  width: 100%;
+  height: 100%;
 }
 
 .canvas__empty {
@@ -266,5 +387,19 @@ pre {
   .sidebar {
     border-right: 0;
     border-bottom: 1px solid #c6b9a3;
+  }
+
+  .inspector__row {
+    flex-direction: column;
+  }
+
+  .inspector__row span,
+  .inspector__row strong {
+    flex: 0 1 auto;
+    text-align: left;
+  }
+
+  .node-audit__meta {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
