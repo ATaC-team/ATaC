@@ -23,6 +23,14 @@ pnpm install
 pnpm dev
 ```
 
+## 构建
+
+```bash
+pnpm build
+```
+
+默认会输出到 [ui_dist](/Users/mob/ATaC/src/atac/ui_dist)，供 `atac ui` 直接读取。
+
 ## 当前边界
 
 - 这是纯前端静态分析，不会执行 graph

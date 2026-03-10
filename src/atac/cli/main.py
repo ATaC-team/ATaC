@@ -17,6 +17,7 @@ from atac.mcp.server import (
     load_mcp_service_from_env,
 )
 from atac.service import AtacService
+from atac.ui import serve_ui
 
 
 @click.group()
@@ -66,6 +67,21 @@ def mcp_command(
     """Start the ATaC MCP server over stdio."""
     service = load_mcp_service_from_env()
     create_mcp_server(service, atac_dir=atac_dir, server_name=server_name).run()
+
+
+@cli.command(name="ui")
+@click.option("--host", default="127.0.0.1", show_default=True, help="Bind host.")
+@click.option("--port", default=4173, type=int, show_default=True, help="Bind port.")
+@click.option(
+    "--open/--no-open",
+    "open_browser",
+    default=True,
+    show_default=True,
+    help="Open the UI in the default browser automatically.",
+)
+def ui_command(host: str, port: int, open_browser: bool) -> None:
+    """Start the packaged audit UI."""
+    serve_ui(host=host, port=port, open_browser=open_browser)
 
 
 @cli.command(name="graph")
