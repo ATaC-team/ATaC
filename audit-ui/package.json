@@ -13,13 +13,17 @@
     "@xyflow/react": "^12.10.1",
     "js-yaml": "^4.1.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-syntax-highlighter": "^16.1.1"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.0",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^5.1.1",
+    "tailwindcss": "^4.2.0",
     "typescript": "~5.9.3",
     "vite": "^7.3.1"
   }

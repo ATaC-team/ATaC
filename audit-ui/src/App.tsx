@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type ReactNode,
 } from "react";
 import {
   Background,
@@ -14,6 +15,8 @@ import {
   ReactFlow,
   type NodeMouseHandler,
 } from "@xyflow/react";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 import { buildFlowLayout } from "./lib/layout";
 import { loadGraphAuditsFromDirectory } from "./lib/graphAudit";
@@ -23,7 +26,8 @@ function App() {
   const [audits, setAudits] = useState<GraphAuditDocument[]>([]);
   const [selectedGraphId, setSelectedGraphId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [status, setStatus] = useState("请选择 graph 根目录，页面会自动识别其中包含 graph.py 的子目录。");
+  const [isSourceModalOpen, setIsSourceModalOpen] = useState(false);
+  const [status, setStatus] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -51,6 +55,7 @@ function App() {
 
   useEffect(() => {
     setSelectedNodeId(selectedGraph?.nodes[0]?.id ?? null);
+    setIsSourceModalOpen(false);
   }, [selectedGraph]);
 
   const handleNodeClick = useMemo<NodeMouseHandler>(
@@ -83,54 +88,75 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="sidebar__header">
-          <p className="eyebrow">ATaC Audit UI</p>
-          <h1>流程审计台</h1>
-          <p className="lede">
-            直接选择 graph 根目录，前端会读取各子目录下的 <code>graph.py</code> 和
-            <code>description.yaml</code>，并渲染流程图。
+    <div className="grid h-full min-w-0 grid-cols-[380px_minmax(0,1fr)] overflow-hidden bg-neutral-100 text-neutral-950 max-[1100px]:grid-cols-1 max-[1100px]:grid-rows-[auto_minmax(420px,1fr)]">
+      <aside className="min-w-0 overflow-auto border-r border-neutral-300 bg-neutral-50 px-5 py-5 max-[1100px]:border-r-0 max-[1100px]:border-b">
+        <header className="mb-5 rounded-none border border-neutral-300 bg-white px-5 py-5 shadow-[0_12px_32px_rgba(0,0,0,0.04)]">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-neutral-500">
+            ATaC Audit UI
           </p>
-        </div>
-
-        <label className="picker">
-          <span>{isLoading ? "读取中..." : "选择 Graph 目录"}</span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleDirectorySelection}
-          />
-        </label>
-
-        <p className="status">{status}</p>
-
-        <section className="panel">
-          <h2>图列表</h2>
-          <div className="graph-list">
-            {audits.length === 0 ? (
-              <p className="empty">还没有读取到 graph。</p>
-            ) : (
-              audits.map((audit) => (
-                <button
-                  key={audit.id}
-                  className={`graph-item ${selectedGraphId === audit.id ? "is-active" : ""}`}
-                  onClick={() => setSelectedGraphId(audit.id)}
-                  type="button"
-                >
-                  <strong>{audit.id}</strong>
-                  <span>{audit.description?.description || audit.directory}</span>
-                </button>
-              ))
-            )}
+          <div className="flex items-center justify-between gap-4 max-[640px]:flex-col max-[640px]:items-stretch">
+            <h1 className="text-4xl font-black uppercase tracking-tight text-neutral-950">
+              流程审计台
+            </h1>
+            <label className="group relative flex min-h-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-none border border-neutral-300 bg-white px-4 text-sm font-bold uppercase tracking-[0.18em] text-neutral-950 transition hover:border-neutral-400 hover:bg-neutral-50">
+              <span>{isLoading ? "读取中..." : "选择流程"}</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleDirectorySelection}
+                className="absolute inset-0 cursor-pointer opacity-0"
+              />
+            </label>
           </div>
-        </section>
+        </header>
 
-        <section className="panel">
-          <h2>概览</h2>
+        {status ? (
+          <p className="mb-4 rounded-none border border-neutral-300 bg-white px-4 py-3 text-sm leading-6 text-neutral-600">
+            {status}
+          </p>
+        ) : null}
+
+        <Section title="图列表">
+          {audits.length === 0 ? (
+            <EmptyState>还没有读取到流程。</EmptyState>
+          ) : (
+            <div className="grid min-w-0 gap-3">
+              {audits.map((audit) => {
+                const isActive = selectedGraphId === audit.id;
+                return (
+                  <button
+                    key={audit.id}
+                    className={[
+                      "w-full min-w-0 overflow-hidden rounded-none border px-4 py-3 text-left transition",
+                      isActive
+                        ? "border-neutral-900 bg-neutral-100 text-neutral-950 shadow-[0_0_0_1px_rgba(0,0,0,0.04)]"
+                        : "border-neutral-300 bg-white text-neutral-950 hover:border-neutral-400 hover:bg-neutral-50",
+                    ].join(" ")}
+                    onClick={() => setSelectedGraphId(audit.id)}
+                    type="button"
+                  >
+                    <strong className="block min-w-0 overflow-hidden text-ellipsis break-words text-sm font-bold uppercase tracking-wide">
+                      {audit.id}
+                    </strong>
+                    <span
+                      className={[
+                        "mt-2 block min-w-0 max-w-full break-words text-sm leading-6 [overflow-wrap:anywhere]",
+                        isActive ? "text-neutral-700" : "text-neutral-600",
+                      ].join(" ")}
+                    >
+                      {audit.description?.description || audit.directory}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Section>
+
+        <Section title="概览">
           {selectedGraph ? (
-            <div className="inspector">
+            <div className="grid gap-3">
               <InspectorRow label="Graph 入口" value={selectedGraph.description?.graph_spec || "-"} />
               <InspectorRow label="目录" value={selectedGraph.directory} />
               <InspectorRow label="状态结构" value={selectedGraph.stateSchema || "-"} />
@@ -138,91 +164,241 @@ function App() {
                 label="依赖子代理"
                 value={String(selectedGraph.description?.requires_agent ?? false)}
               />
-              <InspectorRow label="节点数" value={String(selectedGraph.nodes.length)} />
-              <InspectorRow label="连线数" value={String(selectedGraph.edges.length)} />
+              <InspectorList
+                label="流程输入"
+                items={formatSchemaItems(selectedGraph.description?.inputs)}
+              />
+              <InspectorList
+                label="流程输出"
+                items={formatSchemaItems(selectedGraph.description?.outputs)}
+              />
             </div>
           ) : (
-            <p className="empty">先从左侧选择一个 graph。</p>
+            <EmptyState>还没有读取到流程。</EmptyState>
           )}
-        </section>
+        </Section>
 
-        <section className="panel">
-          <h2>当前节点</h2>
+        <Section title="当前节点">
           {selectedNodeAudit ? (
-            <article className={`node-audit__card kind-${selectedNodeAudit.kind}`}>
-              <div className="node-audit__head">
-                <strong>{selectedNodeAudit.id}</strong>
-                <span>{kindLabel(selectedNodeAudit.kind)}</span>
-                {selectedNodeAudit.isAsync ? <span>异步</span> : null}
+            <article
+              className={[
+                "rounded-none border p-4 shadow-[0_20px_50px_rgba(0,0,0,0.24)]",
+                nodeCardTone(selectedNodeAudit.kind),
+              ].join(" ")}
+            >
+              <div className="mb-4 flex min-w-0 flex-wrap items-start gap-2">
+                <strong className="min-w-0 break-words text-base font-black uppercase tracking-wide text-stone-950">
+                  {selectedNodeAudit.id}
+                </strong>
+                <NodeBadge>{kindLabel(selectedNodeAudit.kind)}</NodeBadge>
+                {selectedNodeAudit.isAsync ? <NodeBadge>异步</NodeBadge> : null}
               </div>
-              <div className="node-audit__meta">
-                <div>
-                  <label>工具调用</label>
-                  <p>
-                    {selectedNodeAudit.toolCalls.map((item) => item.toolName).join(", ") || "无"}
-                  </p>
-                </div>
-                <div>
-                  <label>代理调用</label>
-                  <p>
-                    {selectedNodeAudit.agentCalls.map((item) => item.agentName).join(", ") || "无"}
-                  </p>
-                </div>
-              </div>
-              <div className="node-audit__docstring">
-                <label>节点说明</label>
-                <p>{selectedNodeAudit.docstring || "未提供节点说明。"}</p>
-              </div>
-              <details className="code-details">
-                <summary>展开源码</summary>
-                <pre
-                  className="code-block"
-                  dangerouslySetInnerHTML={{
-                    __html: highlightPythonSource(
-                      selectedNodeAudit.source || "未提取到源码。",
-                    ),
-                  }}
+
+              <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                <MetaBlock
+                  label="工具调用"
+                  value={selectedNodeAudit.toolCalls.map((item) => item.toolName).join(", ") || "无"}
                 />
-              </details>
+                <MetaBlock
+                  label="代理调用"
+                  value={selectedNodeAudit.agentCalls.map((item) => item.agentName).join(", ") || "无"}
+                />
+              </div>
+
+              <div className="mb-4 rounded-none border border-stone-900/10 bg-white/55 p-4">
+                <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-stone-600">
+                  节点说明
+                </div>
+                <p className="m-0 break-words text-sm leading-6 text-stone-800">
+                  {selectedNodeAudit.docstring || "未提供节点说明。"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsSourceModalOpen(true)}
+                className="w-full rounded-none border border-stone-900/10 bg-white/70 px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-stone-700 transition hover:bg-white"
+              >
+                查看源码
+              </button>
             </article>
           ) : (
-            <p className="empty">点击右侧 flow 中的节点后，这里会显示详细信息。</p>
+            <EmptyState>点击节点显示详情。</EmptyState>
           )}
-        </section>
+        </Section>
       </aside>
 
-      <main className="canvas">
+      <main className="min-h-0 min-w-0 overflow-hidden bg-[linear-gradient(180deg,_#ffffff_0%,_#f5f5f5_100%)]">
         {selectedGraph ? (
-          <div className="canvas__flow">
-            <ReactFlow
-              fitView
-              nodes={flow.nodes}
-              edges={flow.edges}
-              onNodeClick={handleNodeClick}
-            >
-              <MiniMap pannable zoomable />
-              <Controls />
-              <Background color="#d8cbb6" gap={18} />
+          <div className="h-full min-h-0 w-full min-w-0">
+            <ReactFlow fitView nodes={flow.nodes} edges={flow.edges} onNodeClick={handleNodeClick}>
+              <MiniMap
+                pannable
+                zoomable
+                className="!bottom-5 !right-5 !border !border-neutral-300 !bg-white"
+              />
+              <Controls className="!bottom-5 !left-5 [&>button]:!border-neutral-300 [&>button]:!bg-white [&>button]:!text-neutral-700" />
+              <Background color="#d4d4d4" gap={18} />
             </ReactFlow>
           </div>
         ) : (
-          <div className="canvas__empty">
-            <h2>等待加载 graph</h2>
-            <p>选择一个 graph 根目录后，这里会用 React Flow 渲染节点与边。</p>
+          <div className="grid h-full place-content-center gap-3 text-center text-neutral-500">
+            <h2 className="m-0 text-2xl font-black uppercase tracking-[0.14em] text-neutral-800">
+              Welcome
+            </h2>
           </div>
         )}
       </main>
+
+      {isSourceModalOpen && selectedNodeAudit ? (
+        <div
+          className="absolute inset-0 z-50 grid place-items-center bg-black/25 p-6"
+          onClick={() => setIsSourceModalOpen(false)}
+        >
+          <div
+            className="flex h-[min(80vh,920px)] w-[min(1100px,100%)] flex-col overflow-hidden rounded-none border border-neutral-300 bg-white shadow-[0_28px_80px_rgba(0,0,0,0.16)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-neutral-500">
+                  节点源码
+                </div>
+                <div className="mt-1 truncate text-lg font-black uppercase tracking-wide text-neutral-950">
+                  {selectedNodeAudit.id}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSourceModalOpen(false)}
+                className="rounded-none border border-neutral-300 bg-white px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] text-neutral-700 transition hover:bg-neutral-50"
+              >
+                关闭
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto bg-neutral-50">
+              <SyntaxHighlighter
+                language="python"
+                style={oneLight}
+                wrapLongLines
+                showLineNumbers
+                customStyle={{
+                  minHeight: "100%",
+                  margin: 0,
+                  padding: "1.25rem",
+                  background: "#fafafa",
+                  fontSize: "0.875rem",
+                  lineHeight: "1.75",
+                }}
+                lineNumberStyle={{
+                  color: "#a3a3a3",
+                  minWidth: "2.5em",
+                  paddingRight: "1rem",
+                  userSelect: "none",
+                }}
+                codeTagProps={{
+                  style: {
+                    fontFamily: '"Iosevka", "IBM Plex Mono", "SF Mono", monospace',
+                  },
+                }}
+              >
+                {selectedNodeAudit.source || "未提取到源码。"}
+              </SyntaxHighlighter>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mb-4 rounded-none border border-neutral-300 bg-white p-4 shadow-[0_10px_24px_rgba(0,0,0,0.04)]">
+      <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-neutral-500">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function EmptyState({ children }: { children: ReactNode }) {
+  return <p className="m-0 text-sm leading-6 text-neutral-500">{children}</p>;
+}
+
 function InspectorRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="inspector__row">
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <div className="flex min-w-0 items-start justify-between gap-4 border-b border-dashed border-neutral-300 pb-3 max-[640px]:flex-col">
+      <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-500">
+        {label}
+      </span>
+      <strong className="min-w-0 break-words text-right text-sm font-medium leading-6 text-neutral-900 max-[640px]:text-left">
+        {value}
+      </strong>
     </div>
   );
+}
+
+function MetaBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-none border border-neutral-300 bg-neutral-50 p-3">
+      <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-500">{label}</div>
+      <p className="m-0 break-words text-sm leading-6 text-neutral-900">{value}</p>
+    </div>
+  );
+}
+
+function InspectorList({
+  label,
+  items,
+}: {
+  label: string;
+  items: Array<{ name: string; type: string | null; required: string | null }>;
+}) {
+  return (
+    <div className="grid min-w-0 gap-3 border-b border-dashed border-neutral-300 pb-3">
+      <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-500">
+        {label}
+      </span>
+      {items.length > 0 ? (
+        <div className="grid min-w-0 gap-2">
+          {items.map((item) => (
+            <div
+              key={[item.name, item.type, item.required].filter(Boolean).join("-")}
+              className="flex min-w-0 flex-wrap items-center gap-2 border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm leading-6 text-neutral-900"
+            >
+              <span className="break-words font-medium text-neutral-950">{item.name}</span>
+              {item.type ? <FieldTag>{item.type}</FieldTag> : null}
+              {item.required ? <FieldTag>{item.required}</FieldTag> : null}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <strong className="min-w-0 break-words text-sm font-medium leading-6 text-neutral-900">
+          -
+        </strong>
+      )}
+    </div>
+  );
+}
+
+function NodeBadge({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-none border border-black/10 bg-black/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-800">
+      {children}
+    </span>
+  );
+}
+
+function nodeCardTone(kind: string) {
+  const mapping: Record<string, string> = {
+    logic: "border-neutral-300 bg-white text-neutral-950",
+    tool: "border-neutral-300 bg-neutral-100 text-neutral-950",
+    agent: "border-neutral-300 bg-neutral-50 text-neutral-950",
+    mixed: "border-neutral-300 bg-neutral-200 text-neutral-950",
+  };
+  return mapping[kind] || "border-neutral-300 bg-white text-neutral-950";
 }
 
 function kindLabel(kind: string) {
@@ -235,24 +411,22 @@ function kindLabel(kind: string) {
   return mapping[kind] || kind;
 }
 
-function highlightPythonSource(source: string) {
-  const escaped = escapeHtml(source);
-  return escaped
-    .replace(
-      /\b(async|await|def|return|if|else|elif|for|in|from|import|class|try|except|raise|with|as|None|True|False)\b/g,
-      '<span class="token token-keyword">$1</span>',
-    )
-    .replace(/(&quot;.*?&quot;|&#39;.*?&#39;)/g, '<span class="token token-string">$1</span>')
-    .replace(/\b(get_service|tool_call|get_agent)\b/g, '<span class="token token-call">$1</span>');
+function FieldTag({ children }: { children: ReactNode }) {
+  return (
+    <span className="border border-neutral-300 bg-white px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-600">
+      {children}
+    </span>
+  );
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+function formatSchemaItems(items: Array<Record<string, unknown>> | undefined) {
+  if (!items || items.length === 0) return [];
+
+  return items.map((item) => ({
+    name: typeof item.name === "string" ? item.name : "-",
+    type: typeof item.type === "string" ? item.type : null,
+    required: item.required === true ? "必填" : item.required === false ? "可选" : null,
+  }));
 }
 
 export default App;
