@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.2] - 2026-03-10
+
+### 中文
+
+#### 新特性
+- **Async Bootstrap Support**: 新增异步 bootstrap 加载链，`ATAC_BOOTSTRAP` 现在可以返回异步创建的 `AtacService`，便于在运行时自然接入异步 MCP client 和其他异步初始化逻辑。
+- **Bulk LangGraph Registration**: `AtacService` 新增 `register_langgraph_tools(...)`，支持批量注册原生 LangGraph / LangChain tools，并保持和已有单个注册接口兼容。
+- **Registered Agent Access**: `AtacService` 新增 `register_agent(...)`、`get_agent(...)` 和 `list_agents()`，graph 节点现在可以通过 `get_service().get_agent()` 访问预注册 agent。
+- **Graph Audit Analyzer**: 新增静态分析 API，可从 graph 源码或 graph spec 中提取可审计结构，包括节点、连线、工具调用、agent 调用和源码片段。
+- **Packaged Audit UI**: 新增基于 React Flow 的审计前端，并提供 `atac ui` 命令直接启动内置静态页面，无论用户通过源码运行还是 `uv tool install atac` 安装都可直接使用。
+
+#### 变更
+- **Audit UI Delivery**: 前端构建产物现在默认输出到 `src/atac/ui_dist` 并作为包数据发布，`atac ui` 会直接从安装包内读取静态资源。
+- **Audit UI Refresh**: 新审计前端使用浅色极简布局、流程概览、节点详情、源码弹窗和语法高亮，替换旧的遗留 UI 前端。
+
+#### 移除
+- **Legacy UI Frontend**: 删除历史遗留的旧 UI 前端代码，统一收敛到新的 packaged audit UI。
+
+### English
+
+#### Features
+- **Async Bootstrap Support**: Added an async bootstrap loading path so `ATAC_BOOTSTRAP` can now return an asynchronously created `AtacService`, making it easier to initialize async MCP clients and other async runtime dependencies.
+- **Bulk LangGraph Registration**: Added `AtacService.register_langgraph_tools(...)` for bulk registration of native LangGraph / LangChain tools while keeping the existing single-tool registration path intact.
+- **Registered Agent Access**: Added `register_agent(...)`, `get_agent(...)`, and `list_agents()` to `AtacService`, allowing graph nodes to access pre-registered agents through `get_service().get_agent()`.
+- **Graph Audit Analyzer**: Added a static graph audit API that extracts auditable structure from graph source or graph specs, including nodes, edges, tool calls, agent calls, and source snippets.
+- **Packaged Audit UI**: Added a React Flow-based audit frontend plus an `atac ui` command that launches the bundled static app directly, whether the user runs from source or installs with `uv tool install atac`.
+
+#### Changed
+- **Audit UI Delivery**: Frontend build output now targets `src/atac/ui_dist` by default and is shipped as package data, so `atac ui` can serve assets directly from the installed package.
+- **Audit UI Refresh**: The new audit frontend uses a light minimal layout with flow overview, node inspection, modal code viewing, and syntax highlighting, replacing the previous legacy UI frontend.
+
+#### Removed
+- **Legacy UI Frontend**: Removed the historical legacy UI frontend so the new packaged audit UI is now the single supported UI surface.
+
 ## [1.1.0] - 2026-03-09
 
 ### 中文

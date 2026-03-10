@@ -1,6 +1,6 @@
 [project]
 name = "atac"
-version = "1.1.0"
+version = "1.0.2"
 description = "Graph-first tool runtime for agent workflows."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -44,3 +44,6 @@ package-dir = { "" = "src" }
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["atac*"]
+
+[tool.setuptools.package-data]
+atac = ["ui_dist/*", "ui_dist/assets/*"]
