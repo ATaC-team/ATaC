@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from typing import Any
@@ -13,6 +14,7 @@ import yaml
 from atac.bootstrap import load_service_from_bootstrap
 from atac.http_server import create_app
 from atac.mcp.server import (
+    AtacMCPTools,
     create_mcp_server,
     load_mcp_service_from_env,
 )
@@ -84,7 +86,45 @@ def ui_command(host: str, port: int, open_browser: bool) -> None:
     serve_ui(host=host, port=port, open_browser=open_browser)
 
 
-@cli.command(name="graph")
+@cli.group(name="graph")
+def graph_group() -> None:
+    """Manage and run saved ATaC graphs."""
+
+
+@graph_group.command(name="list")
+@click.option(
+    "--atac-dir",
+    envvar="ATAC_DIR",
+    required=True,
+    help="Directory used to store and load graph packages.",
+)
+def graph_list_command(atac_dir: str) -> None:
+    """List all saved graph descriptions under ATAC_DIR."""
+    graphs = _build_graph_tools(atac_dir=atac_dir).list_graph()
+    click.echo(json.dumps(_to_json_compatible(graphs), ensure_ascii=False, indent=2))
+
+
+@graph_group.command(name="get")
+@click.argument("name")
+@click.option(
+    "--atac-dir",
+    envvar="ATAC_DIR",
+    required=True,
+    help="Directory used to store and load graph packages.",
+)
+@click.option(
+    "--include-code/--no-include-code",
+    default=False,
+    show_default=True,
+    help="Include graph source code in the output.",
+)
+def graph_get_command(name: str, atac_dir: str, include_code: bool) -> None:
+    """Return saved graph metadata and optionally graph source code."""
+    graph = _build_graph_tools(atac_dir=atac_dir).get_graph(name, include_code=include_code)
+    click.echo(json.dumps(_to_json_compatible(graph), ensure_ascii=False, indent=2))
+
+
+@graph_group.command(name="run")
 @click.argument("graph_spec")
 @click.option(
     "--input",
@@ -97,14 +137,24 @@ def ui_command(host: str, port: int, open_browser: bool) -> None:
     envvar="ATAC_BOOTSTRAP",
     help="Bootstrap callable for tool registration ('module:function').",
 )
-def graph_command(
+@click.option(
+    "--atac-dir",
+    envvar="ATAC_DIR",
+    help="Graph package directory for name-based graph lookup.",
+)
+def graph_run_command(
     graph_spec: str,
     input_pairs: tuple[str, ...],
     bootstrap: str | None,
+    atac_dir: str | None,
 ) -> None:
-    """Run a compiled LangGraph-style app loaded from <module:function>."""
-    service = _build_local_service(bootstrap=bootstrap)
-    result = service.run_graph(graph_spec, _parse_input_pairs(input_pairs))
+    """Run a saved graph by name or a graph loaded from <module:function>."""
+    result = _run_graph(
+        graph_spec=graph_spec,
+        input_pairs=input_pairs,
+        bootstrap=bootstrap,
+        atac_dir=atac_dir,
+    )
     click.echo(json.dumps(_to_json_compatible(result), ensure_ascii=False, indent=2))
 
 
@@ -149,6 +199,31 @@ def _build_local_service(bootstrap: str | None) -> AtacService:
     if bootstrap:
         return load_service_from_bootstrap(bootstrap)
     return AtacService()
+
+
+def _build_graph_tools(*, atac_dir: str, bootstrap: str | None = None) -> AtacMCPTools:
+    service = _build_local_service(bootstrap=bootstrap)
+    return AtacMCPTools(service=service, atac_dir=atac_dir)
+
+
+def _run_graph(
+    *,
+    graph_spec: str,
+    input_pairs: tuple[str, ...],
+    bootstrap: str | None,
+    atac_dir: str | None,
+) -> Any:
+    state = _parse_input_pairs(input_pairs)
+    if atac_dir:
+        return asyncio.run(
+            _build_graph_tools(atac_dir=atac_dir, bootstrap=bootstrap).run_graph(
+                graph_spec,
+                state,
+            )
+        )
+
+    service = _build_local_service(bootstrap=bootstrap)
+    return asyncio.run(service.arun_graph(graph_spec, state))
 
 
 def _parse_input_pairs(input_pairs: tuple[str, ...]) -> dict[str, Any]:

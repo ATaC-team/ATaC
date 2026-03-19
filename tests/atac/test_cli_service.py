@@ -135,6 +135,7 @@ def test_cli_graph_loads_graph_and_binds_service(tmp_path, monkeypatch):
         cli,
         [
             "graph",
+            "run",
             "graphapp.graph_module:build_graph",
             "--bootstrap",
             "graphapp.bootstrap:get_service",
@@ -145,3 +146,68 @@ def test_cli_graph_loads_graph_and_binds_service(tmp_path, monkeypatch):
 
     assert result.exit_code == 0
     assert '"result": "ALICE"' in result.output
+
+
+def test_cli_graph_list_reads_graphs_from_atac_dir(monkeypatch):
+    runner = CliRunner()
+
+    class FakeTools:
+        def list_graph(self):
+            return [{"name": "demo", "description": "Demo graph"}]
+
+    monkeypatch.setattr("atac.cli.main._build_graph_tools", lambda **_: FakeTools())
+
+    result = runner.invoke(cli, ["graph", "list", "--atac-dir", "/tmp/graphs"])
+
+    assert result.exit_code == 0
+    assert '"name": "demo"' in result.output
+
+
+def test_cli_graph_get_reads_single_graph_from_atac_dir(monkeypatch):
+    runner = CliRunner()
+
+    class FakeTools:
+        def get_graph(self, name: str, *, include_code: bool):
+            return {"ok": True, "name": name, "include_code": include_code}
+
+    monkeypatch.setattr("atac.cli.main._build_graph_tools", lambda **_: FakeTools())
+
+    result = runner.invoke(
+        cli,
+        ["graph", "get", "demo", "--atac-dir", "/tmp/graphs", "--include-code"],
+    )
+
+    assert result.exit_code == 0
+    assert '"name": "demo"' in result.output
+    assert '"include_code": true' in result.output
+
+
+def test_cli_graph_run_uses_atac_dir_for_name_based_graphs(monkeypatch):
+    runner = CliRunner()
+    captured: dict = {}
+
+    class FakeTools:
+        async def run_graph(self, graph_spec: str, state: dict):
+            captured["graph_spec"] = graph_spec
+            captured["state"] = state
+            return {"ok": True, "graph": graph_spec, "result": state}
+
+    monkeypatch.setattr("atac.cli.main._build_graph_tools", lambda **_: FakeTools())
+
+    result = runner.invoke(
+        cli,
+        [
+            "graph",
+            "run",
+            "demo",
+            "--atac-dir",
+            "/tmp/graphs",
+            "--input",
+            "who=alice",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["graph_spec"] == "demo"
+    assert captured["state"] == {"who": "alice"}
+    assert '"graph": "demo"' in result.output
