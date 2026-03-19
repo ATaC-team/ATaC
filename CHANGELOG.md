@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.3] - 2026-03-19
+
+### 中文
+
+#### 新特性
+- **Graph CLI Catalog Commands**: 为 `atac graph` 新增 `list`、`get` 和 `run` 子命令，支持直接从 `ATAC_DIR` 列出可用 graph、读取 graph 元信息，以及按 graph 名称运行已保存流程。
+
+#### 变更
+- **Graph Execution UX**: `atac graph run` 现在同时支持 `<module>:<factory>` 和已保存的 graph 名称；当提供 `--atac-dir` 或设置 `ATAC_DIR` 时，会优先按 graph 目录解析并执行。
+
+### English
+
+#### Features
+- **Graph CLI Catalog Commands**: Added `list`, `get`, and `run` subcommands under `atac graph`, allowing users to list saved graphs from `ATAC_DIR`, inspect graph metadata, and run graphs by saved name.
+
+#### Changed
+- **Graph Execution UX**: `atac graph run` now supports both `<module>:<factory>` specs and saved graph names. When `--atac-dir` or `ATAC_DIR` is provided, graph execution can resolve directly from the saved graph directory.
+
 ## [1.0.2] - 2026-03-10
 
 ### 中文

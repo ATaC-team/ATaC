@@ -1,6 +1,6 @@
 [project]
 name = "atac"
-version = "1.0.2"
+version = "1.0.3"
 description = "Graph-first tool runtime for agent workflows."
 readme = "README.md"
 requires-python = ">=3.13"
