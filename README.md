@@ -13,39 +13,37 @@
 
 ## 中文
 
-ATaC 1.0.0 是一个面向 Agent 工作流的工具运行时，帮助 Agent 通过编排图代码复用资产。
+ATaC是一个面向 Agent 工作流的工具运行时，帮助 Agent 通过编排图代码复用资产。
 
 它主要提供三类能力：
 
-- 工具注册：统一注册 Agent 内置工具和 MCP 工具
-- 工具调用：在 graph 节点里通过 `tool_call(...)` 按名字调用工具
-- Python SDK：让 Agent 在 graph 代码里直接调用已注册工具
+- 统一工具注册：把本地 Agent 工具和 MCP 工具纳入同一个运行时
+- Agent 自编排 graph：让 Agent 生成的 graph 代码可以直接复用这些已注册能力
+- 一键运行：加载并执行这些 graph 工作流
 
-你可以把常用能力沉淀为已注册工具，再在新的图里直接复用它们，把任务经验持续积累成可维护的工作流代码。
-
-### 🛠 核心能力
-
-- **Agent 工具注册**：把 Agent 内置工具统一注册到 `AtacService`。
-- **MCP 工具注册**：把外部 MCP 工具接入同一套工具空间中复用，默认直接使用原始工具名。
-- **图代码调用 SDK**：在 graph 节点里直接使用 `get_service().tool_call(...)`。
-- **资产复用导向**：Agent 通过编排图代码，把已有工具资产重新组织成新的工作流。
-- **LangGraph 编排友好**：直接在 LangGraph graph 代码中组合和复用这些工具资产。
+把工具注册到 ATaC，让 Agent 用代码把这些工具组织成流程，并逐步沉淀为可复用、可维护的 graph 工作流。
 
 ### 🤖 最小接入示例
 
-#### 1. 注册 Agent 内置工具
+#### 1. 注册 Agent 内置工具和 MCP 工具
 
 ```python
-from atac import AtacService, set_service
-from atac.wrapper.langgraph import tool
+import asyncio
+import inspect
+import sys
+from pathlib import Path
+
+from atac import AtacService
 import atac.subprocess as subprocess
+from langchain_core.tools import tool
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 service = AtacService()
-set_service(service)
 
 
-@tool(name="bash")
-def bash_tool(command: str) -> str:
+@tool
+def bash(command: str) -> str:
+    """在当前运行目录里执行 shell 命令。"""
     completed = subprocess.run(
         command,
         shell=True,
@@ -56,10 +54,40 @@ def bash_tool(command: str) -> str:
         raise RuntimeError(completed.stderr.strip() or "bash failed")
     return completed.stdout.rstrip("\n")
 
+service.register_langgraph_tools([bash])
+
+client = MultiServerMCPClient(
+    {
+        "demo_mcp": {
+            "transport": "stdio",
+            "command": sys.executable,
+            "args": [str(Path("simple_mcp_server.py").resolve())],
+        }
+    }
+)
+
+mcp_tools = client.get_tools()
+if inspect.isawaitable(mcp_tools):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        mcp_tools = asyncio.run(mcp_tools)
+    else:
+        raise RuntimeError("在异步上下文里请先 await client.get_tools() 再注册")
+
+mcp_tools = list(mcp_tools)
+service.register_langgraph_tools(mcp_tools)
+
 
 def get_service() -> AtacService:
     return service
 ```
+
+推荐做法：
+
+- 本地工具直接使用原生 `langchain_core.tools.tool`
+- MCP 工具直接使用官方 `langchain_mcp_adapters.client.MultiServerMCPClient`
+- 统一通过 `service.register_langgraph_tools(...)` 注册到 `AtacService`
 
 #### 2. 在 graph 代码里调用 ATaC SDK
 
@@ -111,40 +139,37 @@ result = service.run_graph("myapp.graphs:build_graph", {"who": "mob"})
 
 ## English
 
-ATaC 1.0.0 is a tool runtime for agent workflows, helping agents reuse assets through graph-based workflow code.
+ATaC is a tool runtime for agent workflows.
 
-It focuses on:
+It provides three core capabilities:
 
-- built-in agent tool registration
-- MCP tool registration
-- named tool invocation from graph nodes
-- a Python SDK for calling registered tools from graph code
+- unified tool registration
+- agent-authored graph workflows that reuse registered tools
+- one-command graph execution
 
-You can keep reusable capabilities behind registered tools, then compose new workflows by calling those assets directly from graph code.
-
-### 🛠 Key Features
-
-- **Built-In Agent Tool Registration**: Register agent-native tools on `AtacService`.
-- **MCP Tool Registration**: Bring external MCP tools into the same reusable tool space, using raw tool names by default.
-- **SDK Calls from Graph Code**: Graph nodes can call `get_service().tool_call(...)`.
-- **Asset Reuse Through Graphs**: Agents build new workflows by composing graph code around existing registered tool assets.
-- **LangGraph-Friendly Composition**: Reuse those assets directly inside LangGraph workflow code.
+Register tools with ATaC, let agents organize them into workflows as code, and gradually turn repeated tasks into reusable, maintainable graph workflows.
 
 ### 🤖 Minimal Integration
 
-#### 1. Register Built-In Agent Tools
+#### 1. Register Built-In and MCP Tools
 
 ```python
-from atac import AtacService, set_service
-from atac.wrapper.langgraph import tool
+import asyncio
+import inspect
+import sys
+from pathlib import Path
+
+from atac import AtacService
 import atac.subprocess as subprocess
+from langchain_core.tools import tool
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 service = AtacService()
-set_service(service)
 
 
-@tool(name="bash")
-def bash_tool(command: str) -> str:
+@tool
+def bash(command: str) -> str:
+    """Run a shell command inside the current runtime workdir."""
     completed = subprocess.run(
         command,
         shell=True,
@@ -155,10 +180,40 @@ def bash_tool(command: str) -> str:
         raise RuntimeError(completed.stderr.strip() or "bash failed")
     return completed.stdout.rstrip("\n")
 
+service.register_langgraph_tools([bash])
+
+client = MultiServerMCPClient(
+    {
+        "demo_mcp": {
+            "transport": "stdio",
+            "command": sys.executable,
+            "args": [str(Path("simple_mcp_server.py").resolve())],
+        }
+    }
+)
+
+mcp_tools = client.get_tools()
+if inspect.isawaitable(mcp_tools):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        mcp_tools = asyncio.run(mcp_tools)
+    else:
+        raise RuntimeError("Await client.get_tools() before registering in async code.")
+
+mcp_tools = list(mcp_tools)
+service.register_langgraph_tools(mcp_tools)
+
 
 def get_service() -> AtacService:
     return service
 ```
+
+Recommended path:
+
+- use the native `langchain_core.tools.tool` decorator for local tools
+- use the official `langchain_mcp_adapters.client.MultiServerMCPClient` for MCP tools
+- register everything through `service.register_langgraph_tools(...)`
 
 #### 2. Call the ATaC SDK from Graph Code
 

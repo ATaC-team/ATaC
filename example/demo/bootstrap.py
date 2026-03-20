@@ -7,16 +7,17 @@ import inspect
 import sys
 from pathlib import Path
 
+from langchain_core.tools import tool
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
 import atac.subprocess as subprocess
-from atac import AtacService, set_service
-from atac.wrapper.langgraph import MultiServerMCPClient, tool
+from atac import AtacService
 
 service = AtacService()
-set_service(service)
 
 
-@tool(name="bash")
-def bash_tool(command: str) -> str:
+@tool
+def bash(command: str) -> str:
     """Run a shell command inside the current runtime workdir."""
     completed = subprocess.run(
         command,
@@ -32,6 +33,9 @@ def bash_tool(command: str) -> str:
     return completed.stdout.rstrip("\n")
 
 
+service.register_langgraph_tools([bash])
+
+
 client = MultiServerMCPClient(
     {
         "demo_mcp": {
@@ -39,25 +43,31 @@ client = MultiServerMCPClient(
             "command": sys.executable,
             "args": [str(Path(__file__).with_name("simple_mcp_server.py"))],
         }
-    },
-    auto_register=True,
+    }
 )
+
+
+def _resolve_mcp_tools() -> list[object]:
+    tools = client.get_tools()
+    if inspect.isawaitable(tools):
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            tools = asyncio.run(tools)
+        else:
+            raise RuntimeError("Await client.get_tools() before importing bootstrap in async code.")
+    return list(tools)
+
+
+MCP_TOOLS = _resolve_mcp_tools()
+service.register_langgraph_tools(MCP_TOOLS)
 
 
 def create_agent(model):
     """Create a LangGraph agent with the registered LangGraph and MCP tools."""
     from langgraph.prebuilt import create_react_agent
 
-    mcp_tools = client.get_tools()
-    if inspect.isawaitable(mcp_tools):
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            mcp_tools = asyncio.run(mcp_tools)
-        else:
-            raise RuntimeError("Await client.get_tools() before creating the agent in async code.")
-
-    return create_react_agent(model, [bash_tool, *list(mcp_tools)])
+    return create_react_agent(model, [bash, *MCP_TOOLS])
 
 
 def get_service() -> AtacService:
