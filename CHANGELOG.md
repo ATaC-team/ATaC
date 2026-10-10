@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0] - 2026-10-10
+
+### 中文
+
+#### 新特性
+
+- **Program Library**: 基于 pi 的可复用程序库，以 `program_id` 统一展示、搜索、调用和版本识别；程序由 `manifest.json`、`main.js` 与 `tests.js` 组成。
+- **Agent Tools**: 提供 `atac_search`、`atac_get`、`atac_save` 和 `atac_run`，支持程序发现、契约查看、候选保存及参数化执行。
+- **Program Reuse**: 每次请求向 Agent 提供已发布程序的 ID 和用途，引导优先复用匹配的程序，兼容其他扩展的提示词设置。
+- **Inbox Board**: `/atac:inbox` 提供独立全屏 TUI 看板、状态分类和新建/更新筛选；Overview、Manifest、Code、Tests、Changes 与 Report 页签支持行号、语法高亮及独立滚动，同时支持 RPC 客户端。
+- **Background Analysis**: 独立 subagent 从已完成请求中提取或修订程序，结合已发布程序与 Inbox 候选目录识别重复功能；开始和结束时显示 pi 通知，记录任务状态、模型用量与诊断。
+- **Test and Publish**: 用户选择确切候选版本进行真实测试，全部通过后自动入库；修订后重新验收，失败或取消保留候选和诊断。
+- **Native Tool Execution**: 使用官方 pi Codemode 执行 JavaScript，经由 pi 调用内置、扩展和 MCP 工具，保留权限、事件与取消语义。
+- **Versioned Storage**: 在 `~/.atac` 保存不可变版本、来源和报告，支持关键词搜索、文件锁、原子写入、并发冲突检测和中断恢复。
+- **GitHub Installation**: 支持通过 `pi install` 从 GitHub 或指定版本安装，适用于 Node.js 22.19+ 和 pi 1.1.x。
+
+### English
+
+#### Features
+
+- **Program Library**: A reusable program library for pi, using `program_id` consistently for display, search, execution, and version identity. Each program contains `manifest.json`, `main.js`, and `tests.js`.
+- **Agent Tools**: `atac_search`, `atac_get`, `atac_save`, and `atac_run` support program discovery, contract inspection, candidate storage, and execution with new inputs.
+- **Program Reuse**: Each request supplies published program IDs and purposes to the agent, guiding it toward matching programs while supporting prompt settings from other extensions.
+- **Inbox Board**: `/atac:inbox` provides a dedicated full-screen TUI board, status columns, and New/Updates filters. Overview, Manifest, Code, Tests, Changes, and Report tabs offer line numbers, syntax highlighting, and independent scrolling. RPC clients are also supported.
+- **Background Analysis**: An independent subagent extracts or revises programs from completed requests, using published and Inbox catalogs to identify duplicate capabilities. pi displays start and completion notifications and records job state, model usage, and diagnostics.
+- **Test and Publish**: Users select an exact candidate revision for real testing; passing tests publish it automatically. Revisions require new verification, while failures and cancellations retain candidates and diagnostics.
+- **Native Tool Execution**: JavaScript runs through official pi Codemode, calling built-in, extension, and MCP tools through pi with their permissions, events, and cancellation behavior.
+- **Versioned Storage**: Immutable versions, sources, and reports are stored in `~/.atac`, with keyword search, file locks, atomic writes, concurrent conflict detection, and interruption recovery.
+- **GitHub Installation**: Install from GitHub or pin a release with `pi install`, using Node.js 22.19+ and pi 1.1.x.
+
 ## [1.0.3] - 2026-03-19
 
 ### 中文

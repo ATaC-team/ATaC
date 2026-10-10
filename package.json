@@ -1,0 +1,57 @@
+{
+  "name": "@atac-team/pi-atac",
+  "version": "2.0.0",
+  "description": "A reusable program library for pi.",
+  "type": "module",
+  "license": "MIT",
+  "repository": "github:ATaC-team/ATaC",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "codemode",
+    "atac"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "files": [
+    "src",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/extension.ts"
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "tsc --noEmit -p tsconfig.test.json",
+    "test": "tsx --test test/*.test.ts",
+    "prepack": "npm run build",
+    "test:package": "node scripts/package-smoke.mjs"
+  },
+  "dependencies": {
+    "@earendil-works/pi-codemode": "1.1.0",
+    "ajv": "^8.17.1",
+    "diff": "^8.0.4",
+    "proper-lockfile": "^4.1.2"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=1.1.0 <2",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "^1.1.0",
+    "@earendil-works/pi-coding-agent": "1.1.0",
+    "@earendil-works/pi-tui": "1.1.0",
+    "@types/node": "^22.0.0",
+    "@types/proper-lockfile": "^4.1.4",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.0",
+    "typebox": "^1.0.0",
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,1 +1,0 @@
-"""Example scenarios for ATaC."""
