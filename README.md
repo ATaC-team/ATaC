@@ -1,6 +1,15 @@
-# ATaC
+<div align="center">
 
-A reusable program library for [pi](https://github.com/badlogic/pi-mono).
+<img src="assets/logo.svg" alt="ATaC" width="500" />
+
+**A reusable program library for [pi](https://pi.dev).**
+
+[![pi](https://img.shields.io/badge/pi-1.1.x-8b5cf6)](https://pi.dev)
+[![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A5%2022.19-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/ATaC-team/ATaC/actions/workflows/ci.yml/badge.svg?branch=feat%28v2%29%2Fprogram-library&event=pull_request)](https://github.com/ATaC-team/ATaC/actions/workflows/ci.yml)
+
+</div>
 
 ATaC turns completed tasks into programs that call pi tools. Candidates are collected in an Inbox. pi shows a notification when background extraction or revision starts and when it finishes. You review and test them before publishing; pi can then find and reuse them with new inputs.
 
@@ -8,10 +17,13 @@ ATaC turns completed tasks into programs that call pi tools. Candidates are coll
 
 Requires Node.js 22.19+ and pi 1.1.x.
 
+Install directly from GitHub:
+
 ```sh
-npm ci
-pi install /absolute/path/to/ATaC
+pi install 'git:github.com/ATaC-team/ATaC@feat(v2)/program-library'
 ```
+
+pi downloads the package and installs its dependencies. See [Pi Packages](https://pi.dev/docs/latest/packages) for Git URL and version options.
 
 Restart pi or run `/reload`, then open:
 
@@ -102,8 +114,16 @@ Tests run in an independent pi session in the source directory, with persisted e
 
 ## Development
 
+Clone the repository and install dependencies, then link the checkout to pi:
+
 ```sh
 npm ci
+pi install /absolute/path/to/ATaC
+```
+
+Run checks:
+
+```sh
 npm run check
 npm test
 npm run test:package
