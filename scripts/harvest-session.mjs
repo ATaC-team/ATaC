@@ -74,9 +74,19 @@ for (const kind of ["direct", "codemode"]) {
       if (analysis) {
         analysisResponses++;
         const prompt = context.messages.find((m) => m.role === "user");
-        const snapshot = JSON.parse(
+        const { snapshot, existing_programs } = JSON.parse(
           prompt.content.map((c) => c.text ?? "").join(""),
-        ).snapshot;
+        );
+        assert.deepEqual(existing_programs.published, []);
+        if (kind === "direct") assert.deepEqual(existing_programs.inbox, []);
+        else {
+          assert.equal(existing_programs.inbox.length, 1);
+          assert.equal(
+            existing_programs.inbox[0].program_id,
+            "line-count-direct",
+          );
+          assert.equal(existing_programs.inbox[0].status, "untested");
+        }
         assert.equal(snapshot.source.goal, `Count lines with ${kind}`);
         assert.ok(
           snapshot.calls.some(

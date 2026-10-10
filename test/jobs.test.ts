@@ -6,6 +6,7 @@ import { test } from "node:test";
 import {
   createAssistantMessageEventStream,
   type AssistantMessage,
+  type TranscriptContext,
 } from "@earendil-works/pi-ai";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Jobs } from "../src/harvest/jobs.js";
@@ -180,7 +181,9 @@ test("analysis SDK has only library tools, notifies once per lifecycle, deduplic
   }
 });
 
-function scriptedContext(reply: (n: number) => AssistantMessage["content"]) {
+function scriptedContext(
+  reply: (n: number, context: TranscriptContext) => AssistantMessage["content"],
+) {
   let requests = 0;
   const notices: { message: string; type: string }[] = [];
   const provider = {
@@ -198,8 +201,8 @@ function scriptedContext(reply: (n: number) => AssistantMessage["content"]) {
         maxTokens: 2000,
       },
     ],
-    streamSimple: () => {
-      const content = reply(++requests);
+    streamSimple: (_model: unknown, context: TranscriptContext) => {
+      const content = reply(++requests, context);
       const message: AssistantMessage = {
         role: "assistant",
         api: "openai-completions",
@@ -406,6 +409,130 @@ test("analysis reports no candidate and keeps noninteractive sessions quiet", as
     assert.equal(script.requests(), 2);
     assert.equal(script.notices.length, 2);
     assert.equal(lib.inbox().length, 0);
+  } finally {
+    await jobs.stop();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("analysis receives current published and Inbox programs before making a save decision", async () => {
+  const root = mkdtempSync(join(tmpdir(), "atac-catalog-"));
+  const lib = new Library(root);
+  const jobs = new Jobs(lib, DEFAULT_LIMITS);
+  const source = {
+    cwd: root,
+    session_id: "catalog",
+    request_id: "one",
+    goal: "Add numbers",
+  };
+  const asset: Bundle = {
+    manifest: {
+      program_id: "sum",
+      name: "Sum values",
+      purpose: "Add numbers",
+      when_to_use: "Repeated sums",
+      tags: ["math"],
+      tools: [],
+      test_tools: [],
+      side_effects: "None",
+      input_schema: true,
+      output_schema: true,
+    },
+    main: "return inputs.reduce((a,b) => a+b, 0);",
+    tests: "await check.equal(await run([2,3]), 5);",
+  };
+  try {
+    const c = await lib.save(asset, source);
+    const claim = await lib.claim(c.id, c.revision);
+    await lib.finish(
+      claim,
+      await testProgram(asset, {
+        tools: [],
+        executeTool: async () => {
+          throw new Error("Unexpected tool");
+        },
+      }),
+    );
+    let pending = await lib.save(
+      { ...asset, main: asset.main + "\n// pending improvement" },
+      source,
+    );
+    const archived = await lib.save(
+      {
+        ...asset,
+        manifest: { ...asset.manifest, program_id: "old-sum", name: "Old sum" },
+      },
+      source,
+    );
+    await lib.change(archived.id, archived.revision, (record) => {
+      record.status = "archived";
+    });
+    const script = scriptedContext((n, context) => {
+      const user = context.messages.find((m) => m.role === "user");
+      assert.ok(user && user.role === "user");
+      const input = JSON.parse(
+        typeof user.content === "string"
+          ? user.content
+          : user.content
+              .filter((c) => c.type === "text")
+              .map((c) => c.text)
+              .join(""),
+      );
+      const catalog = input.existing_programs;
+      assert.equal(catalog.published.length, 1);
+      assert.equal(catalog.published[0].program_id, "sum");
+      assert.equal(catalog.published[0].name, "Sum values");
+      assert.equal(catalog.published[0].purpose, "Add numbers");
+      assert.equal(catalog.published[0].when_to_use, "Repeated sums");
+      assert.equal(catalog.published[0].revision, c.revision);
+      assert.equal(catalog.inbox.length, 2);
+      const update = catalog.inbox.find(
+        (item: { candidate_id: string }) => item.candidate_id === pending.id,
+      );
+      assert.equal(update.status, "untested");
+      assert.equal(update.base_version, c.revision);
+      assert.equal(update.revision, pending.revision);
+      assert.equal(update.name, n === 1 ? "Sum values" : "Updated sum");
+      assert.equal(
+        catalog.inbox.find(
+          (item: { candidate_id: string }) => item.candidate_id === archived.id,
+        ).status,
+        "archived",
+      );
+      assert.match(
+        JSON.stringify(context.messages.filter((m) => m.role === "system")),
+        /Different paths, inputs, titles or equivalent implementations are not new capabilities/,
+      );
+      return [
+        { type: "text", text: "Already covered by sum. No candidate needed." },
+      ];
+    });
+    const snapshot = {
+      source,
+      messages: [],
+      calls: [],
+      tools: [],
+      truncated: false,
+    };
+    await jobs.enqueue(snapshot, script.ctx);
+    await jobs.waitForIdle();
+    pending = await lib.save(
+      { ...asset, manifest: { ...asset.manifest, name: "Updated sum" } },
+      source,
+      { id: pending.id, expected_revision: pending.revision },
+    );
+    await jobs.enqueue(
+      { ...snapshot, source: { ...source, request_id: "two" } },
+      script.ctx,
+    );
+    await jobs.waitForIdle();
+    assert.equal(script.requests(), 2);
+    assert.ok(
+      jobs.list().every((job) => job.state === "done"),
+      JSON.stringify(jobs.list().map((job) => job.diagnostic)),
+    );
+    assert.ok(jobs.list().every((job) => !job.saved_id));
+    assert.equal(lib.inbox(true).length, 3);
   } finally {
     await jobs.stop();
     rmSync(root, { recursive: true, force: true });

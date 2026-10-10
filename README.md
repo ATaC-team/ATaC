@@ -96,7 +96,7 @@ Optional `config.json`:
 }
 ```
 
-By default, background analysis uses the main session's model and thinking level. Each job has a three-minute limit, up to eight model responses, and can save one candidate. Analysis sessions have only library tools. Saved task excerpts may contain business data; avoid embedding credentials in programs.
+By default, background analysis uses the main session's model and thinking level. Each job has a three-minute limit, up to eight model responses, and can save one candidate. Each analysis starts with the current published programs and Inbox candidates, including archived proposals. The catalog includes names, purposes, usage conditions, and candidate status. The agent compares capabilities, skips duplicates, and uses the existing program ID for meaningful updates. Analysis sessions have only library tools. Saved task excerpts may contain business data; avoid embedding credentials in programs.
 
 Tests run in an independent pi session in the source directory, with persisted extensions, MCP servers, and permissions. Session-only tools that cannot be restored will cause tests to fail. ATaC does not retry business operations or undo their side effects.
 
