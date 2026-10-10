@@ -4,18 +4,47 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-10-10
 
-- Rewrite as a TypeScript Pi Package; remove the Python, LangGraph and Web UI implementation.
-- Save immutable Programs (`manifest.json`, `main.js`, `tests.js`) in `~/.atac`.
-- Notify pi when background program extraction or revision starts and finishes.
-- Add four fixed tools and `/atac:inbox` with user-controlled testing and automatic publication on success.
-- Open Inbox in a full-screen TUI board with status columns, live updates, and New / Updates filters.
-- Use official pi Codemode and nested tool execution, including extension and MCP permission hooks.
-- Add independent analysis sessions, durable jobs, revision handling and usage records.
-- Include published program titles in provider requests when other extensions replace the system prompt.
-- Give background analysis the published and Inbox program catalog before deciding whether to save a candidate.
-- Track implementation and acceptance in [RFC #4](https://github.com/ATaC-team/ATaC/issues/4).
+### 中文
+
+#### 新特性
+
+- **Program Library**: 新增 pi 可复用程序库，将 `manifest.json`、`main.js` 和 `tests.js` 保存到 `~/.atac`，支持关键词搜索、不可变版本、来源记录和执行报告。
+- **Agent Tools**: 提供 `atac_search`、`atac_get`、`atac_save` 和 `atac_run` 四个固定工具；每次请求注入已发布程序的标题和 ID，引导 Agent 优先复用。
+- **Inbox Board**: `/atac:inbox` 以独立全屏 TUI 看板展示分类和状态；Overview、Manifest、Code、Tests、Changes 和 Report 分页支持行号、语法高亮及独立滚动，兼容 RPC 客户端。
+- **Background Analysis**: 请求完成后，由独立 subagent 提取或修订程序；分析前提供已发布程序和 Inbox 候选目录，帮助识别重复功能。开始和结束时显示 pi 通知，任务、用量和诊断持久化保存。
+- **Test and Publish**: 用户选择当前候选版本运行真实测试，全部通过后自动入库。修订使原测试结果失效，失败或取消保留候选和诊断，支持并发冲突检测与中断恢复。
+- **Native Tool Execution**: 使用官方 pi Codemode 执行 JavaScript，通过 pi 工具分发保留内置、扩展及 MCP 工具的事件、权限和取消语义。
+
+#### 变更
+
+- **Pi Package**: 使用 TypeScript 和 ESM 全面重写，要求 Node.js 22.19+ 和 pi 1.1.x，支持直接从 GitHub 安装。
+- **Review Flow**: 新建和更新均先进入 Inbox；后台不主动提问、不自动试跑，用户通过 `/atac:inbox` 查看、测试、修订或归档。
+
+#### 移除
+
+- **Version 1 Interfaces**: 移除 Python SDK、LangGraph 适配、独立 CLI、HTTP/MCP 服务和 Web UI。旧版发行及 Git 历史保留，不自动迁移旧资产。
+
+### English
+
+#### Features
+
+- **Program Library**: Added a reusable program library for pi, storing `manifest.json`, `main.js`, and `tests.js` in `~/.atac`, with keyword search, immutable versions, source records, and execution reports.
+- **Agent Tools**: Added four fixed tools: `atac_search`, `atac_get`, `atac_save`, and `atac_run`. Each request includes published program titles and IDs to guide the agent toward reuse.
+- **Inbox Board**: `/atac:inbox` opens a dedicated full-screen TUI board with categories and statuses. Overview, Manifest, Code, Tests, Changes, and Report tabs provide line numbers, syntax highlighting, and independent scrolling. RPC clients are also supported.
+- **Background Analysis**: An independent subagent extracts or revises programs after requests finish. It receives the published and Inbox program catalog before analysis to identify duplicate capabilities. pi shows start and completion notifications; jobs, usage, and diagnostics are persisted.
+- **Test and Publish**: Users select an exact candidate revision for real testing; passing tests publish it automatically. Revisions invalidate previous results, while failures and cancellations retain candidates and diagnostics. Concurrent publication conflicts and interrupted jobs are handled explicitly.
+- **Native Tool Execution**: JavaScript runs through official pi Codemode and pi tool dispatch, preserving events, permissions, and cancellation for built-in, extension, and MCP tools.
+
+#### Changed
+
+- **Pi Package**: Rebuilt in TypeScript and ESM for Node.js 22.19+ and pi 1.1.x, with direct installation from GitHub.
+- **Review Flow**: New programs and updates enter Inbox first. Background analysis does not ask questions or run tests automatically; users review, test, revise, or archive through `/atac:inbox`.
+
+#### Removed
+
+- **Version 1 Interfaces**: Removed the Python SDK, LangGraph adapters, standalone CLI, HTTP/MCP servers, and Web UI. Previous releases and Git history remain available; existing assets are not migrated automatically.
 
 ## [1.0.3] - 2026-03-19
 

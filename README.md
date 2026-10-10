@@ -7,7 +7,7 @@
 [![pi](https://img.shields.io/badge/pi-1.1.x-8b5cf6)](https://pi.dev)
 [![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A5%2022.19-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://github.com/ATaC-team/ATaC/actions/workflows/ci.yml/badge.svg?branch=feat%28v2%29%2Fprogram-library&event=pull_request)](https://github.com/ATaC-team/ATaC/actions/workflows/ci.yml)
+[![CI](https://github.com/ATaC-team/ATaC/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ATaC-team/ATaC/actions/workflows/ci.yml)
 
 </div>
 
@@ -20,7 +20,13 @@ Requires Node.js 22.19+ and pi 1.1.x.
 Install directly from GitHub:
 
 ```sh
-pi install 'git:github.com/ATaC-team/ATaC@feat(v2)/program-library'
+pi install https://github.com/ATaC-team/ATaC
+```
+
+To install a specific release:
+
+```sh
+pi install git:github.com/ATaC-team/ATaC@v2.0.0
 ```
 
 pi downloads the package and installs its dependencies. See [Pi Packages](https://pi.dev/docs/latest/packages) for Git URL and version options.
