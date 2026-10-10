@@ -2,7 +2,7 @@
 
 A reusable program library for [pi](https://github.com/badlogic/pi-mono).
 
-ATaC turns completed tasks into programs that call pi tools. Candidates are collected silently in an Inbox. You review and test them before publishing; pi can then find and reuse them with new inputs.
+ATaC turns completed tasks into programs that call pi tools. Candidates are collected in an Inbox. pi shows a notification when background extraction or revision starts and when it finishes. You review and test them before publishing; pi can then find and reuse them with new inputs.
 
 ## Install
 
@@ -31,7 +31,7 @@ Use the arrow keys to move between columns and cards, **Enter** to open a card, 
 - **Activity** — View background jobs, model usage, and diagnostics.
 - **History** — Include published and archived candidates in RPC clients.
 
-Background analysis never opens dialogs or runs candidate code. Failed tests leave the candidate in Inbox. Revisions require another test run; a failed update leaves the published version available.
+Notifications report saved candidates, skipped extraction, failures, or paused jobs. Background analysis never asks questions or runs candidate code. Failed tests leave the candidate in Inbox. Revisions require another test run; a failed update leaves the published version available.
 
 Tests use real tools and may have the declared side effects. Existing pi permission extensions still apply. New user input or session shutdown cancels testing. Interrupted tests are not replayed automatically.
 

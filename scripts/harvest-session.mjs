@@ -195,12 +195,13 @@ for (const kind of ["direct", "codemode"]) {
     model: modelRuntime.getModel("atac-e2e", "fixture"),
     sessionManager: SessionManager.inMemory(root),
   });
+  const notices = [];
   try {
     await session.bindExtensions({
       mode: "rpc",
       uiContext: {
-        notify() {
-          throw new Error("Background notification");
+        notify(message, type) {
+          notices.push({ message, type });
         },
         select() {
           throw new Error("Background dialog");
@@ -230,10 +231,18 @@ for (const kind of ["direct", "codemode"]) {
       job = records("jobs").find(
         (j) => j.snapshot.source.session_id === session.sessionId,
       );
-      if (job && ["done", "failed"].includes(job.state)) break;
+      if (job && ["done", "failed"].includes(job.state) && notices.length === 2)
+        break;
       await delay(25);
     } while (Date.now() < deadline);
     assert.equal(job?.state, "done", job?.diagnostic);
+    assert.deepEqual(notices, [
+      { message: "ATaC: Program extraction started.", type: "info" },
+      {
+        message: "ATaC: Program saved. Open /atac:inbox to review.",
+        type: "info",
+      },
+    ]);
     assert.equal(parentResponses, 2);
     assert.equal(analysisResponses, 3);
     assert.equal(job.usage.responses, 3);
@@ -257,5 +266,5 @@ for (const kind of ["direct", "codemode"]) {
 }
 assert.equal(records("jobs").length, 2);
 console.log(
-  "Harvest lifecycle passed: ordinary and nested tool calls, independent analysis, silent Inbox, separate usage.",
+  "Harvest lifecycle passed: ordinary and nested tool calls, independent analysis, lifecycle notices, separate usage.",
 );

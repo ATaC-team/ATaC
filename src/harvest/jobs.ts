@@ -163,7 +163,10 @@ export class Jobs {
       );
       let session: AgentSession | undefined;
       let responses = 0;
+      const activity =
+        job.kind === "harvest" ? "Program extraction" : "Program revision";
       try {
+        if (ctx.hasUI) ctx.ui.notify(`ATaC: ${activity} started.`, "info");
         await roles.run("analysis", async () => {
           const signal = this.active!.signal;
           const agentDir = getAgentDir();
@@ -388,6 +391,22 @@ export class Jobs {
             .catch(() => {});
         }
         this.active = undefined;
+        if (ctx.hasUI) {
+          const message =
+            job.state === "queued"
+              ? `${activity} paused.`
+              : job.state === "failed"
+                ? `${activity} failed.${job.saved_id ? " Candidate saved to Inbox." : ""} See /atac:inbox for details.`
+                : job.saved_id
+                  ? `Program ${job.kind === "revise" ? "revised" : "saved"}. Open /atac:inbox to review.`
+                  : job.kind === "revise"
+                    ? "No revision produced. See /atac:inbox for details."
+                    : "No reusable program found.";
+          ctx.ui.notify(
+            `ATaC: ${message}`,
+            job.state === "failed" ? "error" : "info",
+          );
+        }
       }
     }
   }

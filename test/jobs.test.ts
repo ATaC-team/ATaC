@@ -15,7 +15,7 @@ import { testProgram } from "../src/runtime/runner.js";
 import { type Bundle } from "../src/library/program.js";
 import { type Snapshot } from "../src/harvest/snapshot.js";
 
-test("analysis SDK has only library tools, silently saves once, deduplicates and records usage", async () => {
+test("analysis SDK has only library tools, notifies once per lifecycle, deduplicates and records usage", async () => {
   const root = mkdtempSync(join(tmpdir(), "atac-jobs-"));
   const library = new Library(root);
   const candidate: Bundle = {
@@ -35,6 +35,7 @@ test("analysis SDK has only library tools, silently saves once, deduplicates and
     tests: "await check.equal(await run([2,3]), 5);",
   };
   let calls = 0;
+  const notices: { message: string; type: string }[] = [];
   const provider = {
     baseUrl: "http://unused.invalid",
     apiKey: "fixture-key",
@@ -109,10 +110,10 @@ test("analysis SDK has only library tools, silently saves once, deduplicates and
       getRegisteredNativeProvider: () => undefined,
       getRegisteredProviderConfig: () => provider,
     },
+    hasUI: true,
     ui: {
-      notify: () => {
-        throw new Error("Background notification forbidden");
-      },
+      notify: (message: string, type: string) =>
+        notices.push({ message, type }),
     },
   } as unknown as ExtensionContext;
   const snapshot: Snapshot = {
@@ -136,6 +137,13 @@ test("analysis SDK has only library tools, silently saves once, deduplicates and
     await jobs.waitForIdle();
     assert.equal(calls, 3);
     assert.equal(jobs.list().length, 1);
+    assert.deepEqual(notices, [
+      { message: "ATaC: Program extraction started.", type: "info" },
+      {
+        message: "ATaC: Program saved. Open /atac:inbox to review.",
+        type: "info",
+      },
+    ]);
     // Simulate a crash after saving the candidate but before committing job completion.
     const saved = library.inbox()[0]!;
     const interrupted = jobs.list()[0]!;
@@ -174,6 +182,7 @@ test("analysis SDK has only library tools, silently saves once, deduplicates and
 
 function scriptedContext(reply: (n: number) => AssistantMessage["content"]) {
   let requests = 0;
+  const notices: { message: string; type: string }[] = [];
   const provider = {
     baseUrl: "http://unused.invalid",
     apiKey: "fixture-key",
@@ -224,7 +233,13 @@ function scriptedContext(reply: (n: number) => AssistantMessage["content"]) {
     },
   };
   return {
+    notices,
     ctx: {
+      hasUI: true,
+      ui: {
+        notify: (message: string, type: string) =>
+          notices.push({ message, type }),
+      },
       model: { provider: "atac-fixture", id: "test-model" },
       modelRegistry: {
         getRegisteredNativeProvider: () => undefined,
@@ -268,6 +283,14 @@ test("analysis stops at eight responses instead of looping or retrying", async (
     assert.equal(jobs.list()[0]!.state, "failed");
     assert.match(jobs.list()[0]!.diagnostic!, /8 model responses/);
     assert.equal(lib.inbox().length, 0);
+    assert.deepEqual(script.notices, [
+      { message: "ATaC: Program extraction started.", type: "info" },
+      {
+        message:
+          "ATaC: Program extraction failed. See /atac:inbox for details.",
+        type: "error",
+      },
+    ]);
   } finally {
     await jobs.stop();
     rmSync(root, { recursive: true, force: true });
@@ -341,6 +364,48 @@ test("failed candidate revision resets verification and never automatically runs
     assert.deepEqual(updated.history, [c.revision]);
     assert.equal(updated.report_id, undefined);
     assert.equal(lib.current("sum"), null);
+    assert.deepEqual(script.notices, [
+      { message: "ATaC: Program revision started.", type: "info" },
+      {
+        message: "ATaC: Program revised. Open /atac:inbox to review.",
+        type: "info",
+      },
+    ]);
+  } finally {
+    await jobs.stop();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("analysis reports no candidate and keeps noninteractive sessions quiet", async () => {
+  const root = mkdtempSync(join(tmpdir(), "atac-notice-"));
+  const lib = new Library(root);
+  const jobs = new Jobs(lib, DEFAULT_LIMITS);
+  const script = scriptedContext(() => [
+    { type: "text", text: "No reusable work" },
+  ]);
+  const snapshot: Snapshot = {
+    source: { cwd: root, session_id: "s", request_id: "one", goal: "one-off" },
+    messages: [],
+    calls: [],
+    tools: [],
+    truncated: false,
+  };
+  try {
+    await jobs.enqueue(snapshot, script.ctx);
+    await jobs.waitForIdle();
+    assert.deepEqual(script.notices, [
+      { message: "ATaC: Program extraction started.", type: "info" },
+      { message: "ATaC: No reusable program found.", type: "info" },
+    ]);
+    await jobs.enqueue(
+      { ...snapshot, source: { ...snapshot.source, request_id: "two" } },
+      { ...script.ctx, hasUI: false },
+    );
+    await jobs.waitForIdle();
+    assert.equal(script.requests(), 2);
+    assert.equal(script.notices.length, 2);
+    assert.equal(lib.inbox().length, 0);
   } finally {
     await jobs.stop();
     rmSync(root, { recursive: true, force: true });
