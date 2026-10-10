@@ -76,6 +76,20 @@ const result = await run({ values: [2, 3] });
 await check.equal(result.total, 5);
 ```
 
+Programs can also combine multiple tool calls with JavaScript logic. For example, read several text files in parallel, combine their contents, and write the result:
+
+```javascript
+// main.js — inputs: { paths: ["notes/a.txt", "notes/b.txt"], output: "combined.txt" }
+const contents = await Promise.all(
+  inputs.paths.map((path) => tools.read({ path })),
+);
+const combined = contents.join("\n\n");
+await tools.write({ path: inputs.output, content: combined });
+return { output: inputs.output, file_count: contents.length };
+```
+
+This program declares `read` and `write` in its manifest's `tools` and declares the output file write in `side_effects`. Independent calls can run in parallel with `Promise.all`; dependent calls use earlier results. The whole sequence can then be reused with a single `atac_run` call.
+
 Programs return JSON and must await tool calls. Tests must await at least one successful `run` and one assertion. `check.equal(actual, expected)` compares values; `check.ok(condition)` accepts a boolean. Input/output schemas use JSON Schema Draft-07 with local references.
 
 Each run uses a fresh Codemode sandbox. File and network access go through declared pi tools. Program dependencies belong in `tools`; setup and cleanup dependencies belong in `test_tools`. ATaC tools and nested `codemode` calls cannot be program dependencies.
