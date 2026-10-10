@@ -140,7 +140,7 @@ for (const order of ["none", "before", "after"]) {
           .join("\n");
         assert.match(
           instructions,
-          /"program_id":"sum","title":"Sum"/,
+          /"program_id":"sum","purpose":"Add values"/,
           `${order}: ${api}`,
         );
         assert.match(

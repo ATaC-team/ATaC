@@ -22,7 +22,6 @@ test("analysis SDK has only library tools, notifies once per lifecycle, deduplic
   const candidate: Bundle = {
     manifest: {
       program_id: "sum",
-      name: "sum",
       purpose: "add values",
       when_to_use: "repeated sums",
       tags: [],
@@ -308,7 +307,6 @@ test("failed candidate revision resets verification and never automatically runs
   const asset: Bundle = {
     manifest: {
       program_id: "sum",
-      name: "sum",
       purpose: "sum",
       when_to_use: "sum",
       tags: [],
@@ -428,7 +426,6 @@ test("analysis receives current published and Inbox programs before making a sav
   const asset: Bundle = {
     manifest: {
       program_id: "sum",
-      name: "Sum values",
       purpose: "Add numbers",
       when_to_use: "Repeated sums",
       tags: ["math"],
@@ -460,7 +457,7 @@ test("analysis receives current published and Inbox programs before making a sav
     const archived = await lib.save(
       {
         ...asset,
-        manifest: { ...asset.manifest, program_id: "old-sum", name: "Old sum" },
+        manifest: { ...asset.manifest, program_id: "old-sum" },
       },
       source,
     );
@@ -481,7 +478,7 @@ test("analysis receives current published and Inbox programs before making a sav
       const catalog = input.existing_programs;
       assert.equal(catalog.published.length, 1);
       assert.equal(catalog.published[0].program_id, "sum");
-      assert.equal(catalog.published[0].name, "Sum values");
+      assert.equal("name" in catalog.published[0], false);
       assert.equal(catalog.published[0].purpose, "Add numbers");
       assert.equal(catalog.published[0].when_to_use, "Repeated sums");
       assert.equal(catalog.published[0].revision, c.revision);
@@ -492,7 +489,8 @@ test("analysis receives current published and Inbox programs before making a sav
       assert.equal(update.status, "untested");
       assert.equal(update.base_version, c.revision);
       assert.equal(update.revision, pending.revision);
-      assert.equal(update.name, n === 1 ? "Sum values" : "Updated sum");
+      assert.equal("name" in update, false);
+      assert.equal(update.purpose, n === 1 ? "Add numbers" : "Updated sum");
       assert.equal(
         catalog.inbox.find(
           (item: { candidate_id: string }) => item.candidate_id === archived.id,
@@ -501,7 +499,7 @@ test("analysis receives current published and Inbox programs before making a sav
       );
       assert.match(
         JSON.stringify(context.messages.filter((m) => m.role === "system")),
-        /Different paths, inputs, titles or equivalent implementations are not new capabilities/,
+        /Different paths, inputs, identifiers or equivalent implementations are not new capabilities/,
       );
       return [
         { type: "text", text: "Already covered by sum. No candidate needed." },
@@ -517,7 +515,7 @@ test("analysis receives current published and Inbox programs before making a sav
     await jobs.enqueue(snapshot, script.ctx);
     await jobs.waitForIdle();
     pending = await lib.save(
-      { ...asset, manifest: { ...asset.manifest, name: "Updated sum" } },
+      { ...asset, manifest: { ...asset.manifest, purpose: "Updated sum" } },
       source,
       { id: pending.id, expected_revision: pending.revision },
     );

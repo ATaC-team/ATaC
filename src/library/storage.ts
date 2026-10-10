@@ -97,14 +97,19 @@ export class Library {
   }
   bundle(revision: string): Bundle {
     const dir = join(this.root, "objects", revisionId(revision));
-    const bundle = validateBundle({
-      manifest: readJson(join(dir, "manifest.json"))!,
+    const stored = {
+      manifest: readJson<Bundle["manifest"] & { name?: string }>(
+        join(dir, "manifest.json"),
+      )!,
       main: readFileSync(join(dir, "main.js"), "utf8"),
       tests: readFileSync(join(dir, "tests.js"), "utf8"),
-    });
-    if (hash(bundle) !== revision)
+    };
+    if (hash(stored) !== revision)
       throw new Error("Program integrity check failed");
-    return bundle;
+    // Preserve the original hashes and reports of prerelease snapshots.
+    // The active contract has a single identifier, including when reading history.
+    delete stored.manifest.name;
+    return validateBundle(stored);
   }
   private putBundle(bundle: Bundle): string {
     const revision = hash(bundle);
@@ -321,7 +326,6 @@ export class Library {
       .flatMap(({ revision, manifest: m }) => {
         const doc = [
           m.program_id,
-          m.name,
           m.purpose,
           m.when_to_use,
           ...m.tags,
@@ -336,7 +340,6 @@ export class Library {
               {
                 program_id: m.program_id,
                 revision,
-                name: m.name,
                 purpose: m.purpose,
                 when_to_use: m.when_to_use,
                 tools: m.tools,
@@ -351,7 +354,7 @@ export class Library {
   }
   async recover(): Promise<void> {
     await this.locked(() => {
-      for (const c of this.inbox())
+      for (const c of this.inbox()) {
         if (
           ["testing", "revising"].includes(c.status) &&
           (!c.owner_pid || !alive(c.owner_pid))
@@ -370,6 +373,18 @@ export class Library {
           delete c.run_id;
           atomicJson(this.candidatePath(c.id), c);
         }
+        if (["untested", "failed", "interrupted"].includes(c.status)) {
+          const bundle = this.bundle(c.revision);
+          if (hash(bundle) !== c.revision) {
+            c.history = [...new Set([...c.history, c.revision])];
+            c.revision = this.putBundle(bundle);
+            c.status = "untested";
+            delete c.report_id;
+            delete c.diagnostic;
+            atomicJson(this.candidatePath(c.id), c);
+          }
+        }
+      }
     });
   }
 }

@@ -178,7 +178,7 @@ export class InboxBoard implements Component {
               this.theme.fg(selected ? "accent" : "borderMuted", text);
             const clean = (text: string) => text.replace(/[\r\n]/g, " ");
             const title = truncateToWidth(
-              clean(card.manifest.name),
+              clean(card.manifest.program_id),
               columnWidth - 6,
             );
             const purpose = wrapTextWithAnsi(
@@ -216,7 +216,7 @@ export class InboxBoard implements Component {
       ? [
           this.theme.fg(
             "accent",
-            current.manifest.name.replace(/[\r\n]/g, " "),
+            current.manifest.program_id.replace(/[\r\n]/g, " "),
           ),
           `${current.manifest.purpose.replace(/[\r\n]/g, " ")} · ${this.state.row + 1}/${this.group(this.state.column).length}`,
         ]

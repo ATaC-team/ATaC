@@ -6,7 +6,6 @@ import { Type } from "typebox";
 export const ManifestSchema = Type.Object(
   {
     program_id: Type.String({ pattern: "^[a-z0-9][a-z0-9-]{0,79}$" }),
-    name: Type.String({ minLength: 1, maxLength: 160 }),
     purpose: Type.String({ minLength: 1, maxLength: 4000 }),
     when_to_use: Type.String({ minLength: 1, maxLength: 4000 }),
     tags: Type.Array(Type.String({ maxLength: 80 }), { maxItems: 30 }),
@@ -33,7 +32,6 @@ export const ManifestSchema = Type.Object(
 
 export interface Manifest {
   program_id: string;
-  name: string;
   purpose: string;
   when_to_use: string;
   tags: string[];

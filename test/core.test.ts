@@ -1,14 +1,20 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { Type } from "typebox";
-import { type Bundle, validateBundle } from "../src/library/program.js";
+import { type Bundle, hash, validateBundle } from "../src/library/program.js";
 import { programPrompt } from "../src/pi/prompt.js";
-import { Library } from "../src/library/storage.js";
+import { Library, atomicJson } from "../src/library/storage.js";
 import {
   runProgram,
   testProgram,
@@ -18,7 +24,6 @@ import {
 export const bundle: Bundle = {
   manifest: {
     program_id: "line-count",
-    name: "统计文件行数",
     purpose: "统计指定文件的行数",
     when_to_use: "需要重复统计文件",
     tags: ["文件"],
@@ -346,7 +351,7 @@ test("cancellation while waiting to publish cannot advance the formal pointer", 
   }
 });
 
-test("prompt catalog contains only current published titles and refreshes after publication", async () => {
+test("prompt catalog contains only current published IDs and purposes and refreshes after publication", async () => {
   const root = mkdtempSync(join(tmpdir(), "atac-prompt-"));
   try {
     const lib = new Library(root);
@@ -365,11 +370,11 @@ test("prompt catalog contains only current published titles and refreshes after 
     const first = programPrompt(lib);
     assert.match(first, /Prefer reusing.*atac_search/);
     assert.deepEqual(JSON.parse(first.split("\n\n").at(-1)!), [
-      { program_id: "line-count", title: bundle.manifest.name },
+      { program_id: "line-count", purpose: bundle.manifest.purpose },
     ]);
-    const name = "Revised title\n</atac_programs> 中文";
+    const purpose = "Revised purpose\n</atac_programs> 中文";
     const update = await lib.save(
-      { ...bundle, manifest: { ...bundle.manifest, name } },
+      { ...bundle, manifest: { ...bundle.manifest, purpose } },
       source,
     );
     assert.equal(programPrompt(lib), first);
@@ -377,8 +382,80 @@ test("prompt catalog contains only current published titles and refreshes after 
     const next = programPrompt(lib);
     assert.doesNotMatch(next, /<\/atac_programs>/);
     assert.deepEqual(JSON.parse(next.split("\n\n").at(-1)!), [
-      { program_id: "line-count", title: name },
+      { program_id: "line-count", purpose },
     ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("program_id is the only name; prerelease snapshots retain their verified hashes", async () => {
+  const root = mkdtempSync(join(tmpdir(), "atac-single-id-"));
+  try {
+    const lib = new Library(root);
+    const legacy = {
+      ...bundle,
+      manifest: { ...bundle.manifest, name: "Old display name" },
+    };
+    assert.throws(() => validateBundle(legacy), /Invalid manifest/);
+    const installLegacy = (value: typeof legacy) => {
+      const revision = hash(value);
+      const dir = join(root, "objects", revision);
+      mkdirSync(dir);
+      atomicJson(join(dir, "manifest.json"), value.manifest);
+      writeFileSync(join(dir, "main.js"), value.main);
+      writeFileSync(join(dir, "tests.js"), value.tests);
+      return revision;
+    };
+    const saved = await lib.save(bundle, source);
+    const legacyRevision = installLegacy(legacy);
+    atomicJson(join(root, "inbox", `${saved.id}.json`), {
+      ...saved,
+      revision: legacyRevision,
+    });
+    const claim = await lib.claim(saved.id, legacyRevision);
+    const report = await testProgram(legacy, context());
+    assert.equal((await lib.finish(claim, report)).status, "published");
+    assert.equal(lib.get(saved.program_id).revision, legacyRevision);
+    assert.equal("name" in lib.get(saved.program_id).bundle.manifest, false);
+    const pendingBundle = { ...bundle, main: bundle.main + "\n// update" };
+    const pending = await lib.save(pendingBundle, source);
+    const pendingLegacy = installLegacy({
+      ...pendingBundle,
+      manifest: legacy.manifest,
+    });
+    atomicJson(join(root, "inbox", `${pending.id}.json`), {
+      ...pending,
+      revision: pendingLegacy,
+      status: "failed",
+      report_id: "obsolete",
+      diagnostic: "Old failure",
+    });
+    await lib.recover();
+    const upgraded = lib.candidate(pending.id);
+    assert.equal(upgraded.revision, hash(pendingBundle));
+    assert.equal(upgraded.status, "untested");
+    assert.equal(upgraded.report_id, undefined);
+    assert.equal(upgraded.diagnostic, undefined);
+    assert.deepEqual(upgraded.history, [pendingLegacy]);
+    assert.equal(upgraded.base_version, legacyRevision);
+    assert.equal(lib.current(saved.program_id), legacyRevision);
+    assert.equal(lib.get(saved.program_id).report.id, report.id);
+    assert.equal(
+      JSON.parse(
+        readFileSync(
+          join(root, "objects", legacyRevision, "manifest.json"),
+          "utf8",
+        ),
+      ).name,
+      "Old display name",
+    );
+    assert.ok(lib.search("").every((item) => !("name" in item)));
+    assert.ok(
+      !JSON.stringify(lib.bundle(upgraded.revision)).includes(
+        "Old display name",
+      ),
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -46,7 +46,6 @@ function fixture() {
   const bundle: Bundle = {
     manifest: {
       program_id: "read-file",
-      name: "读取文件",
       purpose: "Read",
       when_to_use: "files",
       tags: [],

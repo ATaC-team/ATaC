@@ -31,7 +31,6 @@ for (const kind of ["direct", "codemode"]) {
   const candidate = {
     manifest: {
       program_id: `line-count-${kind}`,
-      name: `Line count ${kind}`,
       purpose: "Count lines in a file",
       when_to_use: "Repeated line counts",
       tags: ["files"],
@@ -109,7 +108,7 @@ for (const kind of ["direct", "codemode"]) {
                   type: "toolCall",
                   id: "search",
                   name: "atac_search",
-                  arguments: { query: candidate.manifest.name },
+                  arguments: { query: candidate.manifest.program_id },
                 },
               ]
             : analysisResponses === 2

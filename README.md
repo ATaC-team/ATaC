@@ -57,6 +57,8 @@ Inbox supports TUI and RPC clients with extension dialogs. Noninteractive sessio
 
 ## Programs
 
+`program_id` is the single program identifier used in the Inbox, search results, and tool calls. Use a concise lowercase name such as `directory-snapshot`.
+
 | File            | Contents                                                                  |
 | --------------- | ------------------------------------------------------------------------- |
 | `manifest.json` | Purpose, usage, input/output schemas, tool dependencies, and side effects |
@@ -82,7 +84,7 @@ Tool results follow pi Codemode conventions: tools with `outputSchema` return `s
 
 ## Agent tools
 
-At the start of each request, ATaC adds the current published program titles and IDs to the agent’s system prompt. The agent is instructed to prefer matching programs, inspect their contracts with `atac_get`, and reuse them with `atac_run`. Pending candidates are excluded.
+At the start of each request, ATaC adds the current published program IDs and purposes to the agent’s system prompt. The agent is instructed to prefer matching programs, inspect their contracts with `atac_get`, and reuse them with `atac_run`. Pending candidates are excluded.
 
 | Tool          | Function                                     |
 | ------------- | -------------------------------------------- |
@@ -114,7 +116,7 @@ Optional `config.json`:
 }
 ```
 
-By default, background analysis uses the main session's model and thinking level. Each job has a three-minute limit, up to eight model responses, and can save one candidate. Each analysis starts with the current published programs and Inbox candidates, including archived proposals. The catalog includes names, purposes, usage conditions, and candidate status. The agent compares capabilities, skips duplicates, and uses the existing program ID for meaningful updates. Analysis sessions have only library tools. Saved task excerpts may contain business data; avoid embedding credentials in programs.
+By default, background analysis uses the main session's model and thinking level. Each job has a three-minute limit, up to eight model responses, and can save one candidate. Each analysis starts with the current published programs and Inbox candidates, including archived proposals. The catalog includes program IDs, purposes, usage conditions, and candidate status. The agent compares capabilities, skips duplicates, and uses the existing program ID for meaningful updates. Analysis sessions have only library tools. Saved task excerpts may contain business data; avoid embedding credentials in programs.
 
 Tests run in an independent pi session in the source directory, with persisted extensions, MCP servers, and permissions. Session-only tools that cannot be restored will cause tests to fail. ATaC does not retry business operations or undo their side effects.
 

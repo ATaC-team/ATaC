@@ -48,7 +48,6 @@ function card(status: Card["candidate"]["status"], update = false): Card {
     },
     manifest: {
       program_id: status,
-      name: `${status} 文件统计`,
       purpose: "Count lines in files",
       when_to_use: "Repeated counts",
       tags: [],
@@ -110,7 +109,7 @@ test("board fits terminal sizes and scrolls columns and cards with the selection
     ...Array.from({ length: 12 }, (_, i) => ({
       ...card("untested"),
       candidate: { ...card("untested").candidate, id: `card-${i}` },
-      manifest: { ...card("untested").manifest, name: `Program ${i} 中文` },
+      manifest: { ...card("untested").manifest, program_id: `program-${i}` },
     })),
     card("archived"),
   ];
@@ -135,7 +134,7 @@ test("board fits terminal sizes and scrolls columns and cards with the selection
       lines.every((line) => visibleWidth(line) <= width!),
       `${width}×${height}`,
     );
-    assert.match(lines.join("\n"), width! < 36 ? /Resize/ : /Program 11/);
+    assert.match(lines.join("\n"), width! < 36 ? /Resize/ : /program-11/);
     if (width! >= 36) assert.match(lines.join("\n"), /Esc Close/);
   }
   terminal.rows = 24;
@@ -312,7 +311,7 @@ test("program details separate files, retain tab scroll, wrap code, and gate act
     const view = new ProgramDetail(
       tui,
       theme,
-      c.manifest.name,
+      c.manifest.program_id,
       saved,
       tabs,
       (action) => actions.push(action),
@@ -362,7 +361,7 @@ test("program details separate files, retain tab scroll, wrap code, and gate act
     const published = new ProgramDetail(
       tui,
       theme,
-      c.manifest.name,
+      c.manifest.program_id,
       { ...saved, status: "published" },
       tabs,
       (action) => actions.push(action),

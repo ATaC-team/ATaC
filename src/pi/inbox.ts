@@ -57,7 +57,7 @@ export async function openInbox(
       const candidates = library.inbox(history);
       const rows = candidates.map(
         (c, i) =>
-          `${i + 1}. ${library.bundle(c.revision).manifest.name} · ${statusLabel(c.status)} · ${c.base_version ? "Update" : "New"}`,
+          `${i + 1}. ${c.program_id} · ${statusLabel(c.status)} · ${c.base_version ? "Update" : "New"}`,
       );
       selection = await ctx.ui.select(
         `ATaC Inbox · ${candidates.length} items`,
@@ -103,7 +103,7 @@ export async function openInbox(
       parent.mode === "tui"
         ? await openDetail(parent, library, c, signal)
         : await ctx.ui.select(
-            `${manifest.name} · ${statusLabel(c.status)}\n${manifest.purpose}`,
+            `${manifest.program_id} · ${statusLabel(c.status)}\n${manifest.purpose}`,
             [
               ...tabs.map((tab) => tab.title),
               ...(canEdit(c) ? ["Test and publish", "Revise", "Archive"] : []),

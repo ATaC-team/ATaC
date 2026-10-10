@@ -262,14 +262,7 @@ export async function openDetail(
     signal.addEventListener("abort", close, { once: true });
     if (signal.aborted) queueMicrotask(close);
     return Object.assign(
-      new ProgramDetail(
-        tui,
-        theme,
-        library.bundle(c.revision).manifest.name,
-        c,
-        tabs,
-        done,
-      ),
+      new ProgramDetail(tui, theme, c.program_id, c, tabs, done),
       {
         dispose() {
           signal.removeEventListener("abort", close);

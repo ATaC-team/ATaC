@@ -17,7 +17,6 @@ const dataDir = join(homedir(), ".atac");
 const asset = {
   manifest: {
     program_id: "sum",
-    name: "Sum",
     purpose: "Add values",
     when_to_use: "summing",
     tags: [],
@@ -126,7 +125,7 @@ try {
   );
   assert.match(
     after.systemPromptOptions.sections.atac_programs,
-    /"program_id":"sum","title":"Sum"/,
+    /"program_id":"sum","purpose":"Add values"/,
   );
   assert.equal(
     Object.keys(after.systemPromptOptions.sections).filter(
@@ -146,7 +145,7 @@ try {
   assert.match(forced.systemPromptOptions.forceSystemPrompt, /Legacy policy/);
   assert.match(
     forced.systemPromptOptions.forceSystemPrompt,
-    /"program_id":"sum","title":"Sum"/,
+    /"program_id":"sum","purpose":"Add values"/,
   );
   assert.doesNotMatch(
     forced.systemPromptOptions.forceSystemPrompt,
