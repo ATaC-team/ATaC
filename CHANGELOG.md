@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0] - Unreleased
+
+- Rewrite as a TypeScript Pi Package; remove the Python, LangGraph and Web UI implementation.
+- Save immutable Programs (`manifest.json`, `main.js`, `tests.js`) in `~/.atac`.
+- Add four fixed tools and a silent `/atac:inbox` with user-controlled testing and automatic publication on success.
+- Open Inbox in a full-screen TUI board with status columns, live updates, and New / Updates filters.
+- Use official pi Codemode and nested tool execution, including extension and MCP permission hooks.
+- Add independent analysis sessions, durable jobs, revision handling and usage records.
+- Track implementation and acceptance in [RFC #4](https://github.com/ATaC-team/ATaC/issues/4).
+
 ## [1.0.3] - 2026-03-19
 
 ### 中文
