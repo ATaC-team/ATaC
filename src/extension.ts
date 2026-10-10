@@ -6,7 +6,7 @@ import { roles } from "./runtime/roles.js";
 import { Recorder } from "./harvest/snapshot.js";
 import { Library } from "./library/storage.js";
 import { programTools } from "./pi/tools.js";
-import { programPrompt } from "./pi/prompt.js";
+import { injectProgramPrompt } from "./pi/prompt.js";
 
 export default function atac(pi: ExtensionAPI): void {
   if (roles.getStore()) return;
@@ -60,7 +60,7 @@ export default function atac(pi: ExtensionAPI): void {
   });
   pi.on("before_agent_start", (event, ctx) => {
     recorder.begin(ctx);
-    event.systemPromptOptions.sections.atac_programs = programPrompt(library);
+    injectProgramPrompt(event.systemPromptOptions, library);
   });
   pi.on("agent_settled", (event, ctx) => {
     if (event.aborted || stopped) {

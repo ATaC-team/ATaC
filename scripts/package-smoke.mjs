@@ -63,6 +63,21 @@ try {
       },
     },
   );
+  run(
+    process.execPath,
+    [
+      "scripts/prompt-session.mjs",
+      join(install, "node_modules/@atac-team/pi-atac"),
+    ],
+    {
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        HOME: home,
+        PI_CODING_AGENT_DIR: join(home, ".pi/agent"),
+      },
+    },
+  );
   const managedHome = join(dir, "managed-home");
   mkdirSync(managedHome);
   const managedEnv = {

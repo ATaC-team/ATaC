@@ -1,4 +1,18 @@
 import type { Library } from "../library/storage.js";
+import type { NormalizedBuildSystemPromptOptions } from "@earendil-works/pi-coding-agent";
+
+export function injectProgramPrompt(
+  options: NormalizedBuildSystemPromptOptions,
+  library: Library,
+): void {
+  const prompt = programPrompt(library);
+  options.sections.atac_programs = prompt;
+  // Legacy extensions return a full prompt. pi projects that string instead of
+  // the transcript's sections when building the actual provider request.
+  if (options.forceSystemPrompt !== undefined) {
+    options.forceSystemPrompt = `${options.forceSystemPrompt.replace(/<atac_programs>[\s\S]*?<\/atac_programs>/g, "").trimEnd()}\n\n<atac_programs>\n${prompt}\n</atac_programs>`;
+  }
+}
 
 export function programPrompt(library: Library): string {
   const catalog = library.published().map(({ manifest }) => ({

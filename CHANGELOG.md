@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Open Inbox in a full-screen TUI board with status columns, live updates, and New / Updates filters.
 - Use official pi Codemode and nested tool execution, including extension and MCP permission hooks.
 - Add independent analysis sessions, durable jobs, revision handling and usage records.
+- Include published program titles in provider requests when other extensions replace the system prompt.
 - Track implementation and acceptance in [RFC #4](https://github.com/ATaC-team/ATaC/issues/4).
 
 ## [1.0.3] - 2026-03-19

@@ -134,6 +134,24 @@ try {
     ).length,
     1,
   );
+  const forced = await session.extensionRunner.emitBeforeAgentStart(
+    "Legacy prompt",
+    undefined,
+    {
+      ...promptOptions,
+      forceSystemPrompt:
+        "Legacy policy.\n<atac_programs>stale catalog</atac_programs>",
+    },
+  );
+  assert.match(forced.systemPromptOptions.forceSystemPrompt, /Legacy policy/);
+  assert.match(
+    forced.systemPromptOptions.forceSystemPrompt,
+    /"program_id":"sum","title":"Sum"/,
+  );
+  assert.doesNotMatch(
+    forced.systemPromptOptions.forceSystemPrompt,
+    /stale catalog/,
+  );
   assert.equal(trialSelected, true);
   assert.ok(
     JSON.parse(readFileSync(join(dataDir, "programs/sum/current.json"), "utf8"))
