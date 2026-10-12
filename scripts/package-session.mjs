@@ -253,3 +253,85 @@ try {
 } finally {
   await cleanup(session);
 }
+
+// Exercise automatic publishing through the installed extension's public command and save tool.
+for (const interruption of [undefined, "input", "shutdown", "reload"]) {
+  session = await child();
+  const notices = [];
+  const programId = `automatic-${interruption ?? "publish"}`;
+  const marker = join(homedir(), `${programId}-started`);
+  try {
+    await session.bindExtensions({
+      mode: "rpc",
+      uiContext: { notify: (message) => notices.push(message) },
+    });
+    await session.prompt("/atac:permissions auto");
+    const save = session.agent.state.tools.find((t) => t.name === "atac_save");
+    const saved = await save.execute("save", {
+      ...asset,
+      manifest: {
+        ...asset.manifest,
+        program_id: programId,
+        ...(interruption
+          ? {
+              test_tools: ["write"],
+              side_effects: "Write a local test fixture",
+            }
+          : {}),
+      },
+      ...(interruption
+        ? {
+            tests: `await tools.write({path: ${JSON.stringify(marker)}, content: "started"}); while (true) {}`,
+          }
+        : {}),
+    });
+    const { candidate_id, status } = JSON.parse(saved.content[0].text);
+    assert.equal(status, "untested");
+    const candidatePath = join(dataDir, "inbox", `${candidate_id}.json`);
+    const candidate = () => JSON.parse(readFileSync(candidatePath, "utf8"));
+    const deadline = Date.now() + 10_000;
+    while (
+      !(interruption
+        ? existsSync(marker)
+        : candidate().status === "published") &&
+      Date.now() < deadline
+    )
+      await delay(25);
+    if (!interruption) {
+      assert.equal(candidate().status, "published");
+      assert.ok(notices.some((n) => n.includes("published. Tests passed.")));
+    } else {
+      assert.ok(existsSync(marker), "automatic test started");
+      if (interruption === "input")
+        await session.extensionRunner.emitInput(
+          "Next task",
+          undefined,
+          "interactive",
+        );
+      else if (interruption === "reload") await session.reload();
+      else
+        await session.extensionRunner.emit({
+          type: "session_shutdown",
+          reason: "quit",
+        });
+      assert.equal(candidate().status, "interrupted");
+      assert.equal(
+        existsSync(join(dataDir, "programs", programId, "current.json")),
+        false,
+      );
+    }
+  } finally {
+    await cleanup(session);
+  }
+}
+session = await child();
+try {
+  await session.bindExtensions({});
+  await session.prompt("/atac:permissions manual");
+  assert.equal(
+    JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8")).permissions,
+    "manual",
+  );
+} finally {
+  await cleanup(session);
+}

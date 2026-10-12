@@ -26,7 +26,7 @@ Restart pi or run `/reload`, then give pi a task as usual.
 ## How it works
 
 1. **Work as usual.** ATaC looks for reusable tool-call sequences after pi finishes a task and proposes programs in the background.
-2. **Review and test.** Open `/atac:inbox` to inspect candidates and test them before publishing to your local library.
+2. **Test and publish.** Review candidates in `/atac:inbox`, or enable automatic testing and publishing with `/atac:permissions auto`.
 3. **Reuse with new inputs.** pi sees your published programs and is instructed to prefer a matching program over repeating the work.
 
 ## Programs
@@ -50,13 +50,15 @@ Once published, pi can reuse the whole sequence with a new set of files. Each pr
 
 ## Inbox
 
-Review candidates, inspect their code, and test them before publishing—all from `/atac:inbox`. Request a revision or archive anything you don't need.
+Review candidates, inspect code and test reports, request revisions, and browse published programs—all from `/atac:inbox`.
 
 ![ATaC Inbox showing example programs grouped by status](assets/inbox.png)
 
 _Inbox with example programs._
 
 Tests call real tools with your existing pi permissions. See the [usage guide](docs/usage.md) for controls and testing behavior.
+
+Manual review is the default. In automatic mode, new candidates are tested when pi is idle and published if they pass, with up to two repairs for program failures. Both modes keep their results in Inbox.
 
 ## Documentation
 

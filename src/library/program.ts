@@ -84,6 +84,13 @@ export interface Report {
   ok: boolean;
   interrupted: boolean;
   diagnostic?: string;
+  failure_kind?:
+    | "program"
+    | "tool"
+    | "environment"
+    | "interrupted"
+    | "conflict";
+  automatic?: { chain_id: string; attempt: number; repairs: number };
   runs: number;
   assertions: number;
   calls: { name: string; status: string }[];

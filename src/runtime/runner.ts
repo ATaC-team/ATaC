@@ -73,12 +73,15 @@ class Invocation {
     readonly ctx: ToolContext,
     readonly limits: Limits,
     readonly calls: Report["calls"] = [],
+    readonly failure: { kind?: Report["failure_kind"] } = {},
   ) {}
   tools(names: string[]): CodemodeTool[] {
     return names.map((name) => {
       const tool = this.ctx.tools.find((t) => t.name === name);
-      if (!tool)
+      if (!tool) {
+        this.failure.kind = "environment";
         throw new Error(`Required callable tool is unavailable: ${name}`);
+      }
       return {
         name,
         execute: async (args, { signal }) => {
@@ -93,11 +96,15 @@ class Invocation {
               : outcome.isError
                 ? "error"
                 : "ok";
-            if (call.status !== "ok") this.failed = true;
+            if (call.status !== "ok") {
+              this.failed = true;
+              this.failure.kind = "tool";
+            }
             return scriptValue(tool, outcome);
           } catch (error) {
             call.status = signal.aborted ? "cancelled" : "error";
             this.failed = true;
+            this.failure.kind = "tool";
             throw error;
           } finally {
             this.pending--;
@@ -121,8 +128,10 @@ class Invocation {
     });
     try {
       const result = await sandbox.execute(code, { signal });
-      if (!result.ok)
+      if (!result.ok) {
+        if (result.error.kind === "sandbox") this.failure.kind = "environment";
         throw new Error(`${result.error.kind}: ${result.error.message}`);
+      }
       signal?.throwIfAborted();
       if (
         result.calls.some((c) => c.status === "cancelled") ||
@@ -228,7 +237,12 @@ export async function testProgram(
         {
           name: "run",
           execute: guard(async (inputs, callSignal) => {
-            const invocation = new Invocation(ctx, limits, execution.calls);
+            const invocation = new Invocation(
+              ctx,
+              limits,
+              execution.calls,
+              execution.failure,
+            );
             const result = await invocation.run(
               bundle,
               inputs,
@@ -289,6 +303,9 @@ export async function testProgram(
   } catch (error) {
     report.diagnostic = errorText(error);
     report.interrupted = signal?.aborted ?? false;
+    report.failure_kind = report.interrupted
+      ? "interrupted"
+      : (execution.failure.kind ?? "program");
   } finally {
     report.finished_at = new Date().toISOString();
     report.calls = execution.calls.map((c) => ({

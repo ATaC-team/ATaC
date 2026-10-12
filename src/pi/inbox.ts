@@ -7,6 +7,44 @@ import { verifyCandidate } from "../runtime/verification.js";
 import { openBoard, statusLabel, type BoardState } from "./board.js";
 import { panelContext } from "./panel.js";
 import { canEdit, detailTabs, openDetail } from "./detail.js";
+import { automaticRuns } from "../runtime/automation.js";
+
+function activityText(library: Library, jobs: Jobs): string {
+  return (
+    [
+      ...jobs.list().map((job) => ({
+        created_at: job.created_at,
+        text: [
+          `${job.automatic_chain ? "Automatic revision" : job.kind === "harvest" ? "Extract" : "Revise"} · ${job.state} · ${job.created_at}`,
+          `Request: ${job.snapshot.source.goal}`,
+          `Model: ${job.model.provider}/${job.model.id}`,
+          ...(job.usage
+            ? [
+                `Usage: ${job.usage.tokens} tokens · $${job.usage.cost.toFixed(4)}`,
+              ]
+            : []),
+          ...(job.diagnostic ? [job.diagnostic] : []),
+        ].join("\n"),
+      })),
+      ...automaticRuns(library.root).map((run) => ({
+        created_at: run.created_at,
+        text: [
+          `Automatic publishing · ${run.state} · ${run.created_at}`,
+          `Program: ${run.program_id}`,
+          `Tests: ${run.attempts.length}/3 · Repairs: ${run.repairs}/2`,
+          ...run.attempts.map(
+            (attempt, i) =>
+              `Test ${i + 1}: ${attempt.status} · ${attempt.revision.slice(0, 12)}${attempt.diagnostic ? `\n${attempt.diagnostic}` : ""}`,
+          ),
+          ...(run.diagnostic ? [run.diagnostic] : []),
+        ].join("\n"),
+      })),
+    ]
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .map((item) => item.text)
+      .join("\n\n") || "No activity"
+  );
+}
 async function pages(
   ctx: ExtensionContext,
   title: string,
@@ -72,28 +110,7 @@ export async function openInbox(
       continue;
     }
     if (selection === "Activity") {
-      await pages(
-        ctx,
-        "Activity",
-        jobs
-          .list()
-          .reverse()
-          .map((job) =>
-            [
-              `${job.kind === "harvest" ? "Extract" : "Revise"} · ${job.state} · ${job.created_at}`,
-              `Request: ${job.snapshot.source.goal}`,
-              `Model: ${job.model.provider}/${job.model.id}`,
-              ...(job.usage
-                ? [
-                    `Usage: ${job.usage.tokens} tokens · $${job.usage.cost.toFixed(4)}`,
-                  ]
-                : []),
-              ...(job.diagnostic ? [job.diagnostic] : []),
-            ].join("\n"),
-          )
-          .join("\n\n") || "No activity",
-        signal,
-      );
+      await pages(ctx, "Activity", activityText(library, jobs), signal);
       continue;
     }
     if (!c) continue;

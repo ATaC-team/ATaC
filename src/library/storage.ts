@@ -139,9 +139,12 @@ export class Library {
       base_version?: string | null;
     },
     harvestKey?: string,
+    onSaved?: (candidate: Candidate) => void,
+    authorize?: () => void,
   ): Promise<Candidate> {
     const bundle = validateBundle(value);
     return this.locked(() => {
+      authorize?.();
       if (harvestKey) {
         const recovered = this.inbox(true).find(
           (c) => c.harvest_key === harvestKey,
@@ -158,6 +161,7 @@ export class Library {
         throw new Error("Candidate changed; reload Inbox before revising");
       if (previous && previous.program_id !== bundle.manifest.program_id)
         throw new Error("Revision cannot change program_id");
+      if (previous?.revision === revision) return previous;
       const duplicate = this.inbox().find((c) => c.revision === revision);
       if (duplicate && duplicate.id !== previous?.id) return duplicate;
       if (!previous && this.current(bundle.manifest.program_id) === revision)
@@ -185,6 +189,7 @@ export class Library {
           : {}),
       };
       atomicJson(this.candidatePath(record.id), record);
+      onSaved?.(record);
       return record;
     });
   }
@@ -203,8 +208,13 @@ export class Library {
       return c;
     });
   }
-  async claim(id: string, revision: string): Promise<Candidate> {
+  async claim(
+    id: string,
+    revision: string,
+    authorize?: () => void,
+  ): Promise<Candidate> {
     return this.change(id, revision, (c) => {
+      authorize?.();
       if (!["untested", "failed", "interrupted"].includes(c.status))
         throw new Error(`Candidate is ${c.status}`);
       c.status = "testing";
@@ -217,11 +227,22 @@ export class Library {
     claim: Candidate,
     report: Report,
     signal?: AbortSignal,
+    authorize?: () => void,
   ): Promise<Candidate> {
     return this.locked(() => {
+      try {
+        authorize?.();
+      } catch (error) {
+        report.ok = false;
+        report.interrupted = true;
+        report.failure_kind = "interrupted";
+        report.diagnostic =
+          error instanceof Error ? error.message : String(error);
+      }
       if (signal?.aborted) {
         report.ok = false;
         report.interrupted = true;
+        report.failure_kind = "interrupted";
         report.diagnostic = "Verification interrupted before publication";
       }
       atomicJson(
@@ -249,8 +270,15 @@ export class Library {
         !report.interrupted
       ) {
         if (this.current(c.program_id) !== c.base_version) {
+          report.ok = false;
+          report.failure_kind = "conflict";
           c.diagnostic =
             "Publication conflict: the formal version changed. Revise against the current version and test again.";
+          report.diagnostic = c.diagnostic;
+          atomicJson(
+            join(this.root, "reports", `${safeId(report.id)}.json`),
+            report,
+          );
         } else {
           this.bundle(c.revision);
           const dir = join(this.root, "programs", safeId(c.program_id));

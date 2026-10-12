@@ -14,6 +14,7 @@ import type { Candidate } from "../library/program.js";
 import type { Library } from "../library/storage.js";
 import { statusLabel } from "./board.js";
 import { frame, PANEL } from "./panel.js";
+import { automaticRuns } from "../runtime/automation.js";
 
 export type DetailAction =
   | "Test and publish"
@@ -32,6 +33,9 @@ export const canEdit = (c: Candidate) =>
 export function detailTabs(library: Library, c: Candidate): DetailTab[] {
   const b = library.bundle(c.revision);
   const m = b.manifest;
+  const automatic = automaticRuns(library.root).find(
+    (run) => run.candidate_id === c.id && run.revision === c.revision,
+  );
   const files = (bundle: typeof b) => [
     JSON.stringify(bundle.manifest, null, 2),
     bundle.main,
@@ -91,9 +95,22 @@ export function detailTabs(library: Library, c: Candidate): DetailTab[] {
     },
     {
       title: "Report",
-      text:
+      text: [
+        ...(automatic
+          ? [
+              `Automatic publishing: ${automatic.state}`,
+              `Tests: ${automatic.attempts.length}/3 · Repairs: ${automatic.repairs}/2`,
+              ...automatic.attempts.map(
+                (attempt, i) =>
+                  `Test ${i + 1}: ${attempt.status} · ${attempt.revision.slice(0, 12)}${attempt.report_id ? ` · Report: ${attempt.report_id}` : ""}${attempt.diagnostic ? `\n${attempt.diagnostic}` : ""}`,
+              ),
+              ...(automatic.diagnostic ? [automatic.diagnostic] : []),
+              "",
+            ]
+          : []),
         c.diagnostic ??
-        (c.status === "published" ? "Tests passed." : "No test results."),
+          (c.status === "published" ? "Tests passed." : "No test results."),
+      ].join("\n"),
     },
   ];
 }

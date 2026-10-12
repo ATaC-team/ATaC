@@ -66,3 +66,5 @@ Use self-contained fixtures where possible. Tools used directly for setup, inspe
 | `atac_run`    | Run a published program with new inputs      |
 
 `atac_save` accepts `manifest`, `main`, and `tests`. To revise an existing candidate, provide `candidate_id` and `expected_revision` together. `atac_run` accepts `program_id` and `inputs`; an optional `revision` selects a specific published revision.
+
+Saving returns the candidate immediately. In manual mode it waits in Inbox; in automatic mode the host schedules testing and publication for new revisions. Saving identical content does not schedule another test. The agent has no direct publish tool. See [publishing permissions](usage.md#publishing-permissions).

@@ -13,6 +13,7 @@ import {
 import { Library } from "../library/storage.js";
 import { runProgram, type Limits } from "../runtime/runner.js";
 import { excerpt, messageText } from "../harvest/snapshot.js";
+import type { CandidateSaved } from "../runtime/automation.js";
 
 export const SaveSchema = Type.Object(
   {
@@ -47,6 +48,7 @@ export function sourceOf(ctx: ExtensionContext): Source {
 export function programTools(
   library: Library,
   limits: Limits,
+  onSaved?: CandidateSaved,
 ): ToolDefinition[] {
   return [
     defineTool({
@@ -96,7 +98,7 @@ export function programTools(
       name: "atac_save",
       label: "Save candidate",
       description:
-        "Save a candidate to Inbox for review. main is an async JavaScript body using inputs and tools. tests uses await run(inputs), await check.equal(actual, expected), and await check.ok(condition). Declare tool dependencies and side effects. To revise, provide candidate_id and expected_revision together.",
+        "Save a candidate to Inbox. The publishing mode controls whether the host schedules automatic testing. main is an async JavaScript body using inputs and tools. tests uses await run(inputs), await check.equal(actual, expected), and await check.ok(condition). Declare tool dependencies and side effects. To revise, provide candidate_id and expected_revision together.",
       parameters: SaveSchema,
       async execute(_id, p, _signal, _update, ctx) {
         if (Boolean(p.candidate_id) !== Boolean(p.expected_revision))
@@ -109,6 +111,8 @@ export function programTools(
           p.candidate_id
             ? { id: p.candidate_id, expected_revision: p.expected_revision! }
             : undefined,
+          undefined,
+          (c) => onSaved?.(c, ctx),
         );
         return result({
           candidate_id: c.id,

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readdirSync } from "node:fs";
+import { readdirSync, watchFile, unwatchFile } from "node:fs";
 import { join } from "node:path";
 import { Type } from "typebox";
 import {
@@ -23,9 +23,10 @@ import {
 import { Library, alive, atomicJson, readJson } from "../library/storage.js";
 import { SaveSchema, result } from "../pi/tools.js";
 import { type Snapshot, excerpt, messageText } from "./snapshot.js";
-import type { Config } from "../config.js";
+import { loadConfig, type Config } from "../config.js";
 import { roles } from "../runtime/roles.js";
 import { closeSession } from "../runtime/verification.js";
+import type { CandidateSaved } from "../runtime/automation.js";
 
 export interface Job {
   id: string;
@@ -41,6 +42,7 @@ export interface Job {
   diagnostic?: string;
   saved_id?: string;
   usage?: { tokens: number; cost: number; responses: number };
+  automatic_chain?: string;
 }
 
 const PROMPT = `You extract reusable Programs for ATaC, a pi-only program library.
@@ -52,7 +54,7 @@ If an existing program already covers the task, save nothing. Different paths, i
 Use program_id as the sole program identifier and display label; do not add a separate name or title.
 Parameterize business-specific values, paths and credentials; do not copy complete business results, secrets or environment-specific test data into assets. Never fabricate successful trial results.
 Use JavaScript async function bodies, not modules. main has inputs, tools, text and image and must return JSON matching output_schema. tools has ONLY the exact declared tools. tools["original-name"] is supported. Each call must be awaited; Promise.all is allowed. No imports, process, fs, fetch, timers or cross-run state. Tool results follow pi Codemode: tools with outputSchema yield structuredContent (including MCP envelopes), others yield joined text. Never call atac_* or codemode inside programs.
-tests has await run(inputs), await check.equal(actual, expected, optionalLabel), await check.ok(condition, optionalLabel) and the declared test_tools. At least one run and meaningful assertions must be awaited. Design self-contained fixtures where possible. Declare real test/program side effects. Use try/finally to clean up; never silently swallow failures. This task does not run tests: all trials require the user to open /atac:inbox.
+tests has await run(inputs), await check.equal(actual, expected, optionalLabel), await check.ok(condition, optionalLabel) and the declared test_tools. At least one run and meaningful assertions must be awaited. Design self-contained fixtures where possible. Declare real test/program side effects. Use try/finally to clean up; never silently swallow failures. This analysis session never runs tests; the host handles verification according to the current publishing mode.
 Save with atac_save, or explain in your final response why nothing merits saving. After saving, stop. A candidate revision must remain untested.`;
 
 // Serializes analysis even while one extension instance is being replaced by another.
@@ -66,6 +68,12 @@ export class Jobs {
   constructor(
     readonly library: Library,
     readonly config: Config,
+    private onSaved?: CandidateSaved,
+    private automatic?: {
+      chainId: string;
+      signal: AbortSignal;
+      authorize: () => void;
+    },
   ) {}
   private path(id: string) {
     if (!/^[a-f0-9-]+$/.test(id)) throw new Error("Invalid job id");
@@ -96,6 +104,7 @@ export class Jobs {
           request: snapshot.source.request_id,
         });
     await this.library.locked(() => {
+      this.automatic?.authorize();
       if (readJson(this.path(id))) return;
       const job: Job = {
         id,
@@ -105,12 +114,17 @@ export class Jobs {
         snapshot,
         model: model ?? { provider: "", id: "" },
         thinking: ctx.thinkingLevel,
+        ...(this.automatic
+          ? { automatic_chain: this.automatic.chainId, owner_pid: process.pid }
+          : {}),
         ...(candidate
           ? {
               candidate: {
                 id: candidate.id,
                 revision: candidate.revision,
-                base_version: this.library.current(candidate.program_id),
+                base_version: this.automatic
+                  ? candidate.base_version
+                  : this.library.current(candidate.program_id),
               },
               instruction,
             }
@@ -125,12 +139,17 @@ export class Jobs {
   }
   start(ctx: ExtensionContext): void {
     if (this.draining || this.stopped) return;
-    const previous = globalSerial[serialKey] ?? Promise.resolve();
+    const previous = this.automatic
+      ? Promise.resolve()
+      : (globalSerial[serialKey] ?? Promise.resolve());
     const next = previous.catch(() => {}).then(() => this.drain(ctx));
-    globalSerial[serialKey] = next.catch(() => {});
+    if (!this.automatic) globalSerial[serialKey] = next.catch(() => {});
     this.draining = next.finally(() => {
       this.draining = undefined;
-      if (!this.stopped && this.list().some((j) => j.state === "queued"))
+      if (
+        !this.stopped &&
+        this.list().some((j) => j.state === "queued" && this.owns(j))
+      )
         this.start(ctx);
     });
     // Background failures are retained in the job ledger, never sent to the conversation.
@@ -143,6 +162,125 @@ export class Jobs {
   }
   async waitForIdle(): Promise<void> {
     while (this.draining) await this.draining;
+  }
+  private owns(job: Job): boolean {
+    return this.automatic
+      ? job.automatic_chain === this.automatic.chainId
+      : !job.automatic_chain;
+  }
+  async repair(
+    candidate: Candidate,
+    ctx: ExtensionContext,
+    diagnostic: string,
+    signal: AbortSignal,
+    authorize: () => void,
+    chainId: string,
+    onSaved: (candidate: Candidate) => void,
+  ): Promise<Candidate> {
+    authorize();
+    const changed = new AbortController();
+    signal = AbortSignal.any([signal, changed.signal]);
+    const checkPermission = authorize;
+    authorize = () => {
+      signal.throwIfAborted();
+      checkPermission();
+    };
+    let savedRevision: string | undefined;
+    const candidatePath = join(
+      this.library.root,
+      "inbox",
+      `${candidate.id}.json`,
+    );
+    const checkCandidate = () => {
+      const current = this.library.candidate(candidate.id);
+      if (
+        current.revision !== (savedRevision ?? candidate.revision) ||
+        current.status !== (savedRevision ? "untested" : "revising")
+      )
+        changed.abort(new Error("Candidate changed during automatic revision"));
+    };
+    const worker = new Jobs(
+      this.library,
+      loadConfig(this.library.root),
+      (c) => {
+        savedRevision = c.revision;
+        onSaved(c);
+      },
+      { chainId, signal, authorize },
+    );
+    const stop = () => {
+      void worker.stop().catch(() => {});
+    };
+    signal.addEventListener("abort", stop, { once: true });
+    try {
+      await this.library.change(candidate.id, candidate.revision, (c) => {
+        authorize();
+        if (c.status !== "failed" || c.report_id !== candidate.report_id)
+          throw new Error("Candidate changed; automatic revision stopped");
+        c.status = "revising";
+        c.owner_pid = process.pid;
+      });
+      watchFile(
+        candidatePath,
+        { interval: 100, persistent: false },
+        checkCandidate,
+      );
+      await worker.enqueue(
+        {
+          source: candidate.source,
+          messages: [],
+          calls: [],
+          tools: [],
+          truncated: false,
+        },
+        ctx,
+        candidate,
+        `Repair the program or its tests using this verification report. Preserve the original task, program_id, and meaningful assertion coverage. Do not remove assertions or weaken the contract merely to obtain a pass. Do not execute tests or tools; the host will test the saved revision.\n${diagnostic}`,
+      );
+      await worker.waitForIdle();
+      authorize();
+      const job = worker
+        .list()
+        .find(
+          (j) =>
+            j.automatic_chain === chainId &&
+            j.candidate?.revision === candidate.revision,
+        );
+      if (!job || job.state !== "done")
+        throw new Error(job?.diagnostic ?? "Automatic revision failed");
+      if (job.saved_id !== candidate.id)
+        throw new Error("No new revision produced for this candidate");
+      checkCandidate();
+      authorize();
+      return this.library.candidate(candidate.id);
+    } finally {
+      unwatchFile(candidatePath, checkCandidate);
+      signal.removeEventListener("abort", stop);
+      await worker.stop().catch(() => {});
+      await this.library.locked(() => {
+        for (const job of worker
+          .list()
+          .filter(
+            (j) => j.automatic_chain === chainId && j.state === "queued",
+          )) {
+          job.state = "failed";
+          job.diagnostic =
+            "Automatic revision interrupted. It will not be replayed.";
+          atomicJson(worker.path(job.id), job);
+        }
+      });
+      await this.library
+        .change(candidate.id, candidate.revision, (c) => {
+          if (c.status === "revising" && c.owner_pid === process.pid) {
+            c.status = signal.aborted ? "interrupted" : "failed";
+            c.diagnostic = signal.aborted
+              ? "Automatic revision interrupted."
+              : "No new revision produced.";
+            delete c.owner_pid;
+          }
+        })
+        .catch(() => {});
+    }
   }
   private catalog() {
     const summary = (m: Manifest) => ({
@@ -172,12 +310,34 @@ export class Jobs {
   private async drain(ctx: ExtensionContext): Promise<void> {
     while (!this.stopped) {
       const job = await this.library.locked(() => {
-        const next = this.list().find(
+        const jobs = this.list();
+        for (const job of jobs) {
+          if (
+            job.automatic_chain &&
+            ["queued", "running"].includes(job.state) &&
+            (!job.owner_pid || !alive(job.owner_pid))
+          ) {
+            job.state = "failed";
+            job.diagnostic =
+              "Automatic revision interrupted. It will not be replayed.";
+            atomicJson(this.path(job.id), job);
+          }
+        }
+        const next = jobs.find(
           (j) =>
-            j.state === "queued" ||
-            (j.state === "running" && (!j.owner_pid || !alive(j.owner_pid))),
+            this.owns(j) &&
+            (j.state === "queued" ||
+              (j.state === "running" && (!j.owner_pid || !alive(j.owner_pid)))),
         );
         if (!next) return undefined;
+        try {
+          this.automatic?.authorize();
+        } catch (error) {
+          next.state = "failed";
+          next.diagnostic = errorText(error);
+          atomicJson(this.path(next.id), next);
+          return undefined;
+        }
         next.state = "running";
         next.owner_pid = process.pid;
         atomicJson(this.path(next.id), next);
@@ -185,6 +345,12 @@ export class Jobs {
       });
       if (!job) return;
       this.active = new AbortController();
+      const active = this.active;
+      const abortAutomatic = () => active.abort(this.automatic?.signal.reason);
+      this.automatic?.signal.addEventListener("abort", abortAutomatic, {
+        once: true,
+      });
+      if (this.automatic?.signal.aborted) abortAutomatic();
       const timer = setTimeout(
         () => this.active?.abort(new Error("Analysis exceeded 3 minutes")),
         180_000,
@@ -194,7 +360,8 @@ export class Jobs {
       const activity =
         job.kind === "harvest" ? "Program extraction" : "Program revision";
       try {
-        if (ctx.hasUI) ctx.ui.notify(`ATaC: ${activity} started.`, "info");
+        if (ctx.hasUI && !this.automatic)
+          ctx.ui.notify(`ATaC: ${activity} started.`, "info");
         await roles.run("analysis", async () => {
           const signal = this.active!.signal;
           const agentDir = getAgentDir();
@@ -214,7 +381,7 @@ export class Jobs {
             noPromptTemplates: true,
             noThemes: true,
             noContextFiles: true,
-            systemPrompt: PROMPT,
+            systemPrompt: `${PROMPT}\nPublishing mode: ${loadConfig(this.library.root).permissions}. In manual mode candidates wait for user review in Inbox. In auto mode the host schedules verification and publishes passing revisions. You only save candidates; never execute tests yourself.`,
           });
           await resourceLoader.reload();
           signal.throwIfAborted();
@@ -304,6 +471,8 @@ export class Jobs {
                         }
                       : undefined,
                     job.kind === "harvest" ? job.id : undefined,
+                    (c) => this.onSaved?.(c, ctx),
+                    this.automatic?.authorize,
                   );
                   job.saved_id = updated.id;
                   return result({
@@ -391,10 +560,14 @@ export class Jobs {
           }
         });
       } catch (error) {
-        job.state = this.stopped && !job.saved_id ? "queued" : "failed";
+        job.state =
+          this.stopped && !job.saved_id && !this.automatic
+            ? "queued"
+            : "failed";
         job.diagnostic = errorText(error);
       } finally {
         clearTimeout(timer);
+        this.automatic?.signal.removeEventListener("abort", abortAutomatic);
         if (session) {
           const stats = session.getSessionStats();
           job.usage = {
@@ -420,17 +593,20 @@ export class Jobs {
             .catch(() => {});
         }
         this.active = undefined;
-        if (ctx.hasUI) {
+        if (ctx.hasUI && !this.automatic) {
           const message =
             job.state === "queued"
               ? `${activity} paused.`
               : job.state === "failed"
                 ? `${activity} failed.${job.saved_id ? " Candidate saved to Inbox." : ""} See /atac:inbox for details.`
-                : job.saved_id
-                  ? `Program ${job.kind === "revise" ? "revised" : "saved"}. Open /atac:inbox to review.`
-                  : job.kind === "revise"
-                    ? "No revision produced. See /atac:inbox for details."
-                    : "No reusable program found.";
+                : job.saved_id &&
+                    loadConfig(this.library.root).permissions === "auto"
+                  ? "Program saved for automatic verification."
+                  : job.saved_id
+                    ? `Program ${job.kind === "revise" ? "revised" : "saved"}. Open /atac:inbox to review.`
+                    : job.kind === "revise"
+                      ? "No revision produced. See /atac:inbox for details."
+                      : "No reusable program found.";
           ctx.ui.notify(
             `ATaC: ${message}`,
             job.state === "failed" ? "error" : "info",

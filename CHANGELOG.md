@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.1] - 2026-10-12
+
+### 中文
+
+#### 新特性
+
+- **Publishing Permissions**: 新增 `/atac:permissions`，支持 `manual` 人工审核与 `auto` 自动测试发布；默认保留人工审核，设置全局持久化并同步到已打开的 pi 会话。
+- **Automatic Publishing**: 自动模式下，新候选及新修订在主 Agent 空闲后串行测试，通过即发布；程序执行、输入输出校验或断言失败时，最多自动修复两轮。工具失败、权限拒绝、环境缺失和发布冲突保留在 Inbox，不触发自动修复。
+- **Automatic Activity**: Inbox 的 Activity 和 Report 展示自动测试、修复轮次及失败原因，pi 显示开始和完成通知。关闭自动模式、新用户输入、退出或重载会取消自动处理；中断的处理链不自动重放，历史候选不因开启自动模式而执行。
+
+#### 变更
+
+- **Agent Guidance**: 主 Agent 和后台分析提示词包含当前发布模式；自动修复结合原始任务、失败报告及已有程序目录修订同一候选，保留版本历史和重试额度。
+- **Documentation**: 更新 README，补充工具调用组合示例、Inbox 截图，以及 Usage、Programs 和 Configuration 使用参考。
+
+#### 修正
+
+- **Unchanged Revisions**: 重复保存相同候选内容保留原有状态和报告，不重置验证结果或重复安排自动测试。
+
+### English
+
+#### Features
+
+- **Publishing Permissions**: Added `/atac:permissions` with `manual` review and `auto` testing and publishing. Manual review remains the default; settings persist globally and synchronize across open pi sessions.
+- **Automatic Publishing**: In automatic mode, new candidates and revisions are tested serially when the main agent is idle and published on success. JavaScript execution, input/output validation, and assertion failures allow up to two repair rounds. Tool failures, denied permissions, missing environment, and publication conflicts remain in Inbox without automatic repairs.
+- **Automatic Activity**: Inbox Activity and Report show automatic test attempts, repair rounds, and failure reasons, with start and completion notifications in pi. Disabling automatic mode, new user input, shutdown, or reload cancels automatic processing. Interrupted chains are not replayed, and enabling automatic mode does not run historical candidates.
+
+#### Changed
+
+- **Agent Guidance**: Main-agent and background-analysis prompts include the current publishing mode. Automatic repairs use the original task, failure report, and existing program catalog to revise the same candidate while preserving version history and retry limits.
+- **Documentation**: Updated the README with composed tool-call examples and an Inbox screenshot, alongside Usage, Programs, and Configuration reference guides.
+
+#### Fixed
+
+- **Unchanged Revisions**: Saving identical candidate content preserves its status and report without resetting verification results or scheduling duplicate automatic tests.
+
 ## [2.0.0] - 2026-10-10
 
 ### 中文

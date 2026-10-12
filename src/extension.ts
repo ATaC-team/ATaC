@@ -7,12 +7,23 @@ import { Recorder } from "./harvest/snapshot.js";
 import { Library } from "./library/storage.js";
 import { programTools } from "./pi/tools.js";
 import { injectProgramPrompt } from "./pi/prompt.js";
+import {
+  AutomaticPublishing,
+  type CandidateSaved,
+} from "./runtime/automation.js";
+import { registerPermissions } from "./pi/permissions.js";
 
 export default function atac(pi: ExtensionAPI): void {
   if (roles.getStore()) return;
   const library = new Library();
   const config = loadConfig(library.root);
-  let jobs = new Jobs(library, config);
+  let automatic: AutomaticPublishing;
+  const saved: CandidateSaved = (candidate, ctx) =>
+    automatic.saved(candidate, ctx);
+  let jobs = new Jobs(library, config, saved);
+  const createAutomatic = () =>
+    new AutomaticPublishing(library, (...args) => jobs.repair(...args));
+  automatic = createAutomatic();
   const recorder = new Recorder();
   let inbox: AbortController | undefined;
   let stopped = false;
@@ -21,9 +32,11 @@ export default function atac(pi: ExtensionAPI): void {
     stopped = true;
     inbox?.abort();
     recorder.reset();
-    await Promise.all([jobs.stop(), inboxDone]);
+    await Promise.all([automatic.stop(), jobs.stop(), inboxDone]);
   };
-  for (const tool of programTools(library, config)) pi.registerTool(tool);
+  for (const tool of programTools(library, config, saved))
+    pi.registerTool(tool);
+  registerPermissions(pi, library, () => automatic.refresh());
   pi.registerCommand("atac:inbox", {
     description: "Review, test, and publish programs",
     async handler(_args, ctx) {
@@ -40,7 +53,8 @@ export default function atac(pi: ExtensionAPI): void {
   });
   pi.on("session_start", async (_event, ctx) => {
     if (stopped) {
-      jobs = new Jobs(library, config);
+      jobs = new Jobs(library, config, saved);
+      automatic = createAutomatic();
       stopped = false;
     }
     await library.recover();
@@ -49,7 +63,7 @@ export default function atac(pi: ExtensionAPI): void {
   pi.on("input", async (event) => {
     if (event.source !== "extension") {
       inbox?.abort(new Error("New user request"));
-      await inboxDone;
+      await Promise.all([automatic.cancel(), inboxDone]);
     }
   });
   pi.on("tool_call", (event) => {

@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { watchFile, unwatchFile } from "node:fs";
+import { join } from "node:path";
 import { Type } from "typebox";
 import {
   createAgentSession,
@@ -32,7 +34,7 @@ export async function closeSession(session: AgentSession): Promise<void> {
   }
 }
 
-/** Created only inside the command handler after the user selected the displayed revision. */
+/** Manual and automatic callers share the same isolated verification pipeline. */
 export async function verifyCandidate(
   library: Library,
   displayed: Candidate,
@@ -43,9 +45,42 @@ export async function verifyCandidate(
     agentDir?: string;
     factories?: ExtensionFactory[];
     mcp?: McpExtensionOptions;
+    automatic?: Report["automatic"];
+    authorize?: () => void;
+    onClaim?: () => void;
   } = {},
 ): Promise<Candidate> {
-  const claim = await library.claim(displayed.id, displayed.revision);
+  const claim = await library.claim(displayed.id, displayed.revision, () => {
+    options.authorize?.();
+    if (
+      options.automatic &&
+      library.candidate(displayed.id).status !== "untested"
+    )
+      throw new Error(
+        "Candidate already claimed or tested; automatic processing stopped",
+      );
+  });
+  options.onClaim?.();
+  const changed = new AbortController();
+  signal = AbortSignal.any([signal, changed.signal]);
+  const candidatePath = join(library.root, "inbox", `${claim.id}.json`);
+  const checkCandidate = () => {
+    const current = library.candidate(claim.id);
+    if (
+      current.revision !== claim.revision ||
+      current.run_id !== claim.run_id ||
+      current.status !== "testing"
+    )
+      changed.abort(
+        new Error("Candidate changed during automatic verification"),
+      );
+  };
+  if (options.automatic)
+    watchFile(
+      candidatePath,
+      { interval: 100, persistent: false },
+      checkCandidate,
+    );
   let report: Report | undefined;
   try {
     await roles.run("verification", async () => {
@@ -166,17 +201,22 @@ export async function verifyCandidate(
       ok: false,
       interrupted: signal.aborted,
       diagnostic: errorText(error),
+      failure_kind: signal.aborted ? "interrupted" : "environment",
       runs: 0,
       assertions: 0,
       calls: [],
     };
+  } finally {
+    if (options.automatic) unwatchFile(candidatePath, checkCandidate);
   }
   if (!report) throw new Error("Verification produced no report");
+  report.automatic = options.automatic;
   if (signal.aborted) {
     report.ok = false;
     report.interrupted = true;
+    report.failure_kind = "interrupted";
     report.diagnostic =
       "Verification interrupted; external effects are not rolled back";
   }
-  return library.finish(claim, report, signal);
+  return library.finish(claim, report, signal, options.authorize);
 }
