@@ -13,7 +13,6 @@ Run commands from the repository root. This project releases through GitHub tags
 - Keep `package.json`, both root versions in `package-lock.json`, the leading `CHANGELOG.md` entry, and tag `vX.Y.Z` consistent. Use `npm version X.Y.Z --no-git-tag-version` to update package versions.
 - Follow the existing changelog structure: `## [X.Y.Z] - YYYY-MM-DD`, then `### 中文` and `### English`, with matching feature/change/fix bullets. Use only relevant subsections and preserve historical entries.
 - Describe user-visible changes since the previous release. Do not include development steps, abandoned designs, draft labels, test execution reports, or fixes to bugs that were never released. Do not generate release notes from commit messages.
-- For this repository, commit as `mob999 <1790758006@qq.com>`. Check the effective author and committer before committing; use repository-local configuration if needed. Never change global Git identity.
 
 ## Prepare and publish
 
