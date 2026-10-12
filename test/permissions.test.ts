@@ -85,8 +85,12 @@ test("permissions command supports selection, cancellation, invalid arguments, a
           notices.push(text);
         },
         select: async (title: string, choices: string[]) => {
-          assert.match(title, /Manual review|Automatic/);
-          assert.deepEqual(choices, ["Manual review", "Automatic"]);
+          assert.match(title, /ATaC permissions:/);
+          assert.deepEqual(choices, [
+            "Auto extract, auto publish",
+            "Auto extract, manual publish",
+            "Manual extract, manual publish",
+          ]);
           return selection;
         },
       },
@@ -96,7 +100,7 @@ test("permissions command supports selection, cancellation, invalid arguments, a
     assert.equal(changed, 0);
     await handler("", ctx);
     assert.equal(changed, 0, "cancel does not change mode");
-    selection = "Automatic";
+    selection = "Auto extract, auto publish";
     await handler("", ctx);
     assert.equal(loadConfig(root).permissions, "auto");
     await handler("manual", ctx);
@@ -110,6 +114,18 @@ test("permissions command supports selection, cancellation, invalid arguments, a
     await handler("auto extra", ctx);
     assert.match(messages.pop()!, /Usage:/);
     assert.equal(changed, 3);
+    await handler("on-demand", ctx);
+    assert.equal(loadConfig(root).permissions, "on-demand");
+    assert.match(messages.pop()!, /Manual extraction enabled/);
+    assert.match(programPrompt(library), /Extraction mode: on-demand/);
+    assert.match(programPrompt(library), /Publishing mode: manual/);
+    await handler("", ctx);
+    assert.match(messages.pop()!, /permissions: on-demand/);
+    const version = loadConfig(root).extractionVersion;
+    await handler("on-demand", ctx);
+    assert.equal(loadConfig(root).extractionVersion, version);
+    await handler("manual", ctx);
+    assert.equal(loadConfig(root).extractionVersion, version);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

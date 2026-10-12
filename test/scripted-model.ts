@@ -7,6 +7,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 export function scriptedContext(
   reply: (n: number, context: TranscriptContext) => AssistantMessage["content"],
+  ready: Promise<void> = Promise.resolve(),
 ) {
   let requests = 0;
   const notices: { message: string; type: string }[] = [];
@@ -48,7 +49,7 @@ export function scriptedContext(
         },
       };
       const stream = createAssistantMessageEventStream();
-      queueMicrotask(() => {
+      void ready.then(() => {
         stream.push({ type: "start", partial: message });
         stream.push({
           type: "done",

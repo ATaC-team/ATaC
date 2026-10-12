@@ -58,7 +58,7 @@ _Inbox with example programs._
 
 Tests call real tools with your existing pi permissions. See the [usage guide](docs/usage.md) for controls and testing behavior.
 
-Manual review is the default. In automatic mode, new candidates are tested when pi is idle and published if they pass, with up to two repairs for program failures. Both modes keep their results in Inbox.
+Automatic extraction with manual review is the default. Use `/atac:permissions` to choose automatic publishing or fully manual extraction and publishing. In manual extraction mode, `/atac:extract` analyzes unprocessed work from the current session together. All modes keep their results in Inbox.
 
 ## Documentation
 

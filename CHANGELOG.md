@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.2] - 2026-10-12
+
+### 中文
+
+#### 新特性
+
+- **Extraction Permissions**: `/atac:permissions` 支持自动提取自动发布、自动提取手动发布，以及 `on-demand` 手动提取手动发布三种模式；默认仍为自动提取、人工审核，设置在已打开的 pi 会话间同步。
+- **Manual Extraction**: 新增 `/atac:extract`，将当前会话分支中尚未处理的已完成任务合并分析，一次可保存多个 program，支持提炼跨任务的工具调用组合。任务记录在重载后保留，重复命令跳过已处理或进行中的内容，失败批次可重试并保留已保存候选。
+- **Activity Widget**: 输入框上方显示提取、修订、自动测试和修复活动，包含实时耗时与实际轮次；并发活动独立展示，完成后立即收起，支持 TUI 主题颜色和 RPC 文本显示。
+
+#### 变更
+
+- **Notifications**: 后台过程提示改为 widget，仅在保存候选、发布成功或最终失败时通知；未发现可复用程序和正常取消时静默结束。
+- **Agent Guidance**: 主 Agent 提示词区分提取与发布模式，手动提取模式下不主动保存程序；批量分析结合已有程序和本批次保存结果避免重复。Inbox Activity 展示批次任务范围和保存结果。
+
+### English
+
+#### Features
+
+- **Extraction Permissions**: `/atac:permissions` now offers automatic extraction and publishing, automatic extraction with manual publishing, and `on-demand` manual extraction and publishing. Automatic extraction with manual review remains the default, and settings synchronize across open pi sessions.
+- **Manual Extraction**: Added `/atac:extract` to analyze unprocessed completed work from the current session branch together. A batch can save multiple programs, including tool-call combinations across tasks. Task records survive reloads, repeated commands skip completed or active work, and failed batches can be retried while retaining saved candidates.
+- **Activity Widget**: A widget above the input shows extraction, revision, automatic testing, and repair, with live elapsed time and attempt or repair counts. Concurrent activities appear independently and disappear on completion, with themed TUI output and plain-text RPC support.
+
+#### Changed
+
+- **Notifications**: Background progress now appears in the widget, with notifications only for saved candidates, successful publication, or final failures. Extraction without reusable programs and normal cancellation finish silently.
+- **Agent Guidance**: Main-agent prompts distinguish extraction from publishing permissions and avoid proactive saves in manual extraction mode. Batch analysis checks existing programs and its own saved results for duplicates. Inbox Activity shows the tasks covered by each batch and its saved programs.
+
 ## [2.0.1] - 2026-10-12
 
 ### 中文

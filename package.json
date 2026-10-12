@@ -1,6 +1,6 @@
 {
   "name": "@atac-team/pi-atac",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A reusable program library for pi.",
   "type": "module",
   "license": "MIT",

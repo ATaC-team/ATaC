@@ -3,12 +3,13 @@ import { randomUUID } from "node:crypto";
 import { DEFAULT_LIMITS, type Limits } from "./runtime/runner.js";
 import { atomicJson, readJson, type Library } from "./library/storage.js";
 
-export type PermissionMode = "manual" | "auto";
+export type PermissionMode = "manual" | "auto" | "on-demand";
 
 export interface Config extends Limits {
   model?: { provider: string; id: string };
   permissions?: PermissionMode;
   permissionVersion?: string;
+  extractionVersion?: string;
 }
 export function loadConfig(root: string): Config {
   const raw = readJson<Partial<Config>>(join(root, "config.json")) ?? {};
@@ -16,10 +17,13 @@ export function loadConfig(root: string): Config {
     ...DEFAULT_LIMITS,
     permissions: "manual" as PermissionMode,
     permissionVersion: "initial",
+    extractionVersion: "initial",
     ...raw,
   };
-  if (!["manual", "auto"].includes(config.permissions))
-    throw new Error("permissions must be manual or auto");
+  if (!["manual", "auto", "on-demand"].includes(config.permissions))
+    throw new Error("permissions must be manual, auto, or on-demand");
+  if (typeof config.extractionVersion !== "string")
+    throw new Error("extractionVersion must be a string");
   if (typeof config.permissionVersion !== "string")
     throw new Error("permissionVersion must be a string");
   if (
@@ -47,8 +51,8 @@ export async function setPermissions(
   library: Library,
   mode: PermissionMode,
 ): Promise<Config> {
-  if (mode !== "manual" && mode !== "auto")
-    throw new Error("permissions must be manual or auto");
+  if (mode !== "manual" && mode !== "auto" && mode !== "on-demand")
+    throw new Error("permissions must be manual, auto, or on-demand");
   return library.locked(() => {
     const current = loadConfig(library.root);
     if (current.permissions === mode) return current;
@@ -58,6 +62,7 @@ export async function setPermissions(
       ...raw,
       permissions: mode,
       permissionVersion: randomUUID(),
+      ...(mode === "on-demand" ? { extractionVersion: randomUUID() } : {}),
     });
     return loadConfig(library.root);
   });

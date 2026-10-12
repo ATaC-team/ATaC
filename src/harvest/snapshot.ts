@@ -8,6 +8,13 @@ import type { Source } from "../library/program.js";
 
 export interface Snapshot {
   source: Source;
+  message_ids?: string[];
+  tasks?: {
+    source: Source;
+    message_ids: string[];
+    text: string;
+    truncated: boolean;
+  }[];
   messages: unknown[];
   calls: unknown[];
   tools: unknown[];
@@ -122,6 +129,9 @@ export class Recorder {
         request_id: user.id,
         goal,
       },
+      message_ids: entries
+        .filter((e) => e.type === "message" && e.message.role !== "system")
+        .map((e) => e.id),
       messages,
       calls: structuredClone(this.calls),
       tools: tools

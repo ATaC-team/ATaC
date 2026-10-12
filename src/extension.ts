@@ -3,7 +3,7 @@ import { loadConfig } from "./config.js";
 import { openInbox } from "./pi/inbox.js";
 import { Jobs } from "./harvest/jobs.js";
 import { roles } from "./runtime/roles.js";
-import { Recorder } from "./harvest/snapshot.js";
+import { Recorder, redact } from "./harvest/snapshot.js";
 import { Library } from "./library/storage.js";
 import { programTools } from "./pi/tools.js";
 import { injectProgramPrompt } from "./pi/prompt.js";
@@ -12,6 +12,8 @@ import {
   type CandidateSaved,
 } from "./runtime/automation.js";
 import { registerPermissions } from "./pi/permissions.js";
+import { TASK_ENTRY, completedTasks } from "./harvest/batch.js";
+import { errorText } from "./library/program.js";
 import { ActivityWidget } from "./pi/activity.js";
 
 export default function atac(pi: ExtensionAPI): void {
@@ -44,7 +46,38 @@ export default function atac(pi: ExtensionAPI): void {
   };
   for (const tool of programTools(library, config, saved))
     pi.registerTool(tool);
-  registerPermissions(pi, library, () => automatic.refresh());
+  registerPermissions(pi, library, async () => {
+    automatic.refresh();
+    await jobs.refresh();
+  });
+  pi.registerCommand("atac:extract", {
+    description: "Extract programs from unprocessed completed work",
+    async handler(args, ctx) {
+      const show = (content: string, error = false) => {
+        if (ctx.hasUI) ctx.ui.notify(content, error ? "error" : "info");
+        else
+          pi.sendMessage({
+            customType: "atac-extract",
+            content,
+            display: true,
+          });
+      };
+      if (args.trim()) {
+        show("Usage: /atac:extract", true);
+        return;
+      }
+      if (!ctx.isIdle()) {
+        show("ATaC: Wait for the current task to finish.");
+        return;
+      }
+      try {
+        if (!(await jobs.enqueue(completedTasks(ctx, pi.getAllTools()), ctx)))
+          show("ATaC: No new completed work to extract.");
+      } catch (error) {
+        show(`ATaC: ${errorText(error)}`, true);
+      }
+    },
+  });
   pi.registerCommand("atac:inbox", {
     description: "Review, test, and publish programs",
     async handler(_args, ctx) {
@@ -93,6 +126,8 @@ export default function atac(pi: ExtensionAPI): void {
     const snapshot = recorder.snapshot(ctx, pi.getAllTools());
     recorder.reset();
     if (snapshot) {
+      pi.appendEntry(TASK_ENTRY, JSON.parse(redact(JSON.stringify(snapshot))));
+      if (loadConfig(library.root).permissions === "on-demand") return;
       // Only persistence is queued here; the handler never awaits model work.
       void jobs.enqueue(snapshot, ctx).catch(() => {});
     }

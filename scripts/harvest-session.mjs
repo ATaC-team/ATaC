@@ -21,7 +21,7 @@ const records = (name) =>
     .filter((n) => n.endsWith(".json"))
     .map((n) => JSON.parse(readFileSync(join(root, ".atac", name, n), "utf8")));
 writeFileSync(join(root, "sample.txt"), "a\nb");
-for (const kind of ["direct", "codemode"]) {
+for (const kind of ["direct", "codemode", "batch"]) {
   let parentResponses = 0,
     analysisResponses = 0;
   let releaseAnalysis;
@@ -78,7 +78,7 @@ for (const kind of ["direct", "codemode"]) {
         );
         assert.deepEqual(existing_programs.published, []);
         if (kind === "direct") assert.deepEqual(existing_programs.inbox, []);
-        else {
+        else if (kind === "codemode") {
           assert.equal(existing_programs.inbox.length, 1);
           assert.equal(
             existing_programs.inbox[0].program_id,
@@ -86,20 +86,30 @@ for (const kind of ["direct", "codemode"]) {
           );
           assert.equal(existing_programs.inbox[0].status, "untested");
         }
-        assert.equal(snapshot.source.goal, `Count lines with ${kind}`);
+        const tasks =
+          kind === "batch"
+            ? snapshot.tasks.map((t) => ({ ...t, ...JSON.parse(t.text) }))
+            : [snapshot];
+        if (kind === "batch") {
+          assert.equal(tasks.length, 2);
+          assert.deepEqual(
+            tasks.map((t) => t.source.goal),
+            ["Count lines with batch", "Count another file"],
+          );
+        }
+        const first = tasks[0];
+        assert.equal(first.source.goal, `Count lines with ${kind}`);
         assert.ok(
-          snapshot.calls.some(
+          first.calls.some(
             (call) => call.name === "read" && call.type === "tool_result",
           ),
         );
         if (kind === "codemode")
           assert.ok(
-            snapshot.calls.some((call) => call.name === "read" && call.parent),
+            first.calls.some((call) => call.name === "read" && call.parent),
           );
         assert.ok(
-          snapshot.messages.some((message) =>
-            message.text.includes("Two lines"),
-          ),
+          first.messages.some((message) => message.text.includes("Two lines")),
         );
         content =
           analysisResponses === 1
@@ -120,7 +130,22 @@ for (const kind of ["direct", "codemode"]) {
                     arguments: candidate,
                   },
                 ]
-              : [{ type: "text", text: "Candidate saved" }];
+              : kind === "batch" && analysisResponses === 3
+                ? [
+                    {
+                      type: "toolCall",
+                      id: "save-second",
+                      name: "atac_save",
+                      arguments: {
+                        ...candidate,
+                        manifest: {
+                          ...candidate.manifest,
+                          program_id: "batch-second",
+                        },
+                      },
+                    },
+                  ]
+                : [{ type: "text", text: "Candidate saved" }];
       } else {
         parentResponses++;
         const catalog = context.messages
@@ -134,7 +159,7 @@ for (const kind of ["direct", "codemode"]) {
         );
         assert.doesNotMatch(catalog, /"program_id":"line-count-/);
         content =
-          parentResponses === 1
+          parentResponses % 2 === 1
             ? [
                 {
                   type: "toolCall",
@@ -226,11 +251,15 @@ for (const kind of ["direct", "codemode"]) {
         },
       },
     });
-    if (kind === "codemode")
+    if (kind !== "direct")
       session.setActiveToolsByName([
         ...session.getActiveToolNames(),
         "codemode",
       ]);
+    if (kind === "batch") {
+      await session.prompt("/atac:permissions on-demand");
+      notices.length = 0;
+    }
     // The request must settle while the analysis model is still held at its gate.
     await session.prompt(`Count lines with ${kind}`);
     assert.equal(
@@ -239,6 +268,31 @@ for (const kind of ["direct", "codemode"]) {
       ),
       false,
     );
+    if (kind === "batch") {
+      await session.prompt("Count another file");
+      assert.equal(analysisResponses, 0, "on-demand must not invoke analysis");
+      assert.equal(
+        records("jobs").filter(
+          (j) => j.snapshot.source.session_id === session.sessionId,
+        ).length,
+        0,
+      );
+      await session.reload();
+      await session.prompt("/atac:extract");
+      await session.prompt("/atac:extract");
+      assert.equal(
+        records("jobs").filter(
+          (j) => j.snapshot.source.session_id === session.sessionId,
+        ).length,
+        1,
+      );
+      assert.ok(
+        notices.some(
+          (n) => n.message === "ATaC: No new completed work to extract.",
+        ),
+      );
+      notices.length = 0;
+    }
     releaseAnalysis();
     const deadline = Date.now() + 10_000;
     let job;
@@ -246,7 +300,11 @@ for (const kind of ["direct", "codemode"]) {
       job = records("jobs").find(
         (j) => j.snapshot.source.session_id === session.sessionId,
       );
-      if (job && ["done", "failed"].includes(job.state) && notices.length === 1)
+      if (
+        job &&
+        ["done", "failed"].includes(job.state) &&
+        notices.length === (kind === "batch" ? 2 : 1)
+      )
         break;
       await delay(25);
     } while (Date.now() < deadline);
@@ -256,15 +314,24 @@ for (const kind of ["direct", "codemode"]) {
         message: `ATaC: Saved ${candidate.manifest.program_id} to Inbox.`,
         type: "info",
       },
+      ...(kind === "batch"
+        ? [{ message: "ATaC: Saved batch-second to Inbox.", type: "info" }]
+        : []),
     ]);
     assert.equal(widgets[0]?.[0], "ATaC  Extracting programs");
     assert.equal(widgets.at(-1), undefined);
-    assert.equal(parentResponses, 2);
-    assert.equal(analysisResponses, 3);
-    assert.equal(job.usage.responses, 3);
+    assert.equal(parentResponses, kind === "batch" ? 4 : 2);
+    assert.equal(analysisResponses, kind === "batch" ? 4 : 3);
+    assert.equal(job.usage.responses, kind === "batch" ? 4 : 3);
     const saved = records("inbox").find((c) => c.id === job.saved_id);
     assert.equal(saved.status, "untested");
     assert.equal(records("reports").length, 0);
+    if (kind === "batch") {
+      assert.equal(job.saved_ids.length, 2);
+      await session.bindExtensions({});
+      await session.prompt("/atac:extract");
+      assert.equal(analysisResponses, 4);
+    }
     assert.equal(
       session.messages.some((m) =>
         JSON.stringify(m).includes("Candidate saved"),
@@ -280,7 +347,7 @@ for (const kind of ["direct", "codemode"]) {
     session.dispose();
   }
 }
-assert.equal(records("jobs").length, 2);
+assert.equal(records("jobs").length, 3);
 console.log(
-  "Harvest lifecycle passed: ordinary and nested tool calls, independent analysis, activity widget and completion notices, separate usage.",
+  "Harvest lifecycle passed: ordinary and nested tool calls, independent analysis, activity widget and completion notices, separate usage, on-demand batch extraction after reload.",
 );

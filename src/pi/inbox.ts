@@ -17,6 +17,15 @@ function activityText(library: Library, jobs: Jobs): string {
         text: [
           `${job.automatic_chain ? "Automatic revision" : job.kind === "harvest" ? "Extract" : "Revise"} · ${job.state} · ${job.created_at}`,
           `Request: ${job.snapshot.source.goal}`,
+          ...(job.snapshot.tasks
+            ? [
+                `Tasks: ${job.snapshot.tasks.length}`,
+                ...job.snapshot.tasks.map((task) => `  ${task.source.goal}`),
+              ]
+            : []),
+          ...(job.saved_ids ?? (job.saved_id ? [job.saved_id] : [])).map(
+            (id) => `Saved: ${library.candidate(id).program_id}`,
+          ),
           `Model: ${job.model.provider}/${job.model.id}`,
           ...(job.usage
             ? [

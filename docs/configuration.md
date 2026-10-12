@@ -13,18 +13,18 @@ ATaC works without a configuration file. Optional settings live in `~/.atac/conf
 }
 ```
 
-| Setting            | Default               | Range or behavior                                                      |
-| ------------------ | --------------------- | ---------------------------------------------------------------------- |
-| `permissions`      | `manual`              | `manual` for Inbox review; `auto` for automatic testing and publishing |
-| `timeoutMs`        | `120000` (2 minutes)  | Execution timeout; 100–3,600,000 ms                                    |
-| `memoryLimitBytes` | `268435456` (256 MiB) | Sandbox memory limit; 1 MiB–1 GiB                                      |
-| `model`            | Main session's model  | Provider and model ID for extraction and revisions                     |
+| Setting            | Default               | Range or behavior                                                                                                    |
+| ------------------ | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `permissions`      | `manual`              | `manual`: auto extract/manual publish; `auto`: auto extract/auto publish; `on-demand`: manual extract/manual publish |
+| `timeoutMs`        | `120000` (2 minutes)  | Execution timeout; 100–3,600,000 ms                                                                                  |
+| `memoryLimitBytes` | `268435456` (256 MiB) | Sandbox memory limit; 1 MiB–1 GiB                                                                                    |
+| `model`            | Main session's model  | Provider and model ID for extraction and revisions                                                                   |
 
-Set publishing permissions with `/atac:permissions manual` or `/atac:permissions auto`. The command preserves other settings and updates open sessions immediately. Older configurations without `permissions` retain manual review. ATaC also maintains `permissionVersion` to revoke in-flight automatic work when the mode changes; leave this field managed by the command.
+Set extraction and publishing with `/atac:permissions auto`, `/atac:permissions manual`, or `/atac:permissions on-demand`. The command preserves other settings and updates open sessions immediately. Older configurations without `permissions` retain manual review. ATaC maintains `permissionVersion` for automatic publishing and `extractionVersion` for queued automatic extraction. Leave these fields managed by the command.
 
 ## Background analysis
 
-Each job uses the main session's thinking level and has a three-minute limit, up to eight model responses, and at most one saved candidate. These analysis limits are separate from the execution settings above.
+Each job uses the main session's thinking level and has a three-minute limit and up to eight model responses. Automatic extraction and revisions save at most one candidate. `/atac:extract` combines unprocessed tasks and may save multiple programs, at most once per program ID in a batch. These analysis limits are separate from the execution settings above.
 
 Automatic publishing permits two repair rounds after the initial test. Each repair uses the same analysis limits and model selection. The retry budget belongs to the entire chain, including its new revisions. See [publishing permissions](usage.md#publishing-permissions) for cancellation and failure handling.
 
@@ -40,8 +40,10 @@ objects/       Program files, addressed by content hash
 programs/      Published versions
 inbox/         Candidates and revision history
 reports/       Test reports and execution summaries
-jobs/          Background jobs, snapshots, and model usage
+jobs/          Background jobs, source coverage, saved candidates, and model usage
 automation/    Automatic chains, test attempts, repairs, and outcomes
 ```
+
+Redacted completed-task snapshots are also stored in pi custom session entries. They follow session branches and are not added to the main agent's model context. Manual extraction batches are not replayed after interruption.
 
 Program revisions are immutable. Test reports identify the tested revision, and a published version changes only after the candidate passes testing. Saved task excerpts may contain business data; avoid embedding credentials in programs.

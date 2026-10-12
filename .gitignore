@@ -5,7 +5,8 @@ dist/
 .env.*
 !.env.example
 .atac/
-.agents/
+.agents/*
+!.agents/skills/
 .vscode/
 .idea/
 *.swp

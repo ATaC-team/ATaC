@@ -1,0 +1,55 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate release tag and changelog
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          node scripts/release-notes.mjs "$GITHUB_REF_NAME" > "$RUNNER_TEMP/release-notes.md"
+  checks:
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+  publish:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/release-notes.mjs "$GITHUB_REF_NAME" > "$RUNNER_TEMP/release-notes.md"
+          if gh release view "$GITHUB_REF_NAME" --json name,body,isDraft,isPrerelease > "$RUNNER_TEMP/existing-release.json"; then
+            node --input-type=module <<'JS'
+          import { readFileSync } from "node:fs";
+          const release = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/existing-release.json`, "utf8"));
+          const notes = readFileSync(`${process.env.RUNNER_TEMP}/release-notes.md`, "utf8").trim();
+          if (release.isDraft || release.isPrerelease || release.name !== `Release ${process.env.GITHUB_REF_NAME}` || release.body.trim() !== notes)
+            throw new Error("Existing release differs from the expected published release; inspect before retrying");
+          JS
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag --title "Release $GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
