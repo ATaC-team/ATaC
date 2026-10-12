@@ -7,6 +7,7 @@ import { authorizeAutomatic, loadConfig } from "../config.js";
 import { type Candidate, type Report, errorText } from "../library/program.js";
 import { Library, alive, atomicJson, readJson } from "../library/storage.js";
 import { verifyCandidate } from "./verification.js";
+import type { ActivityWidget } from "../pi/activity.js";
 
 export type CandidateSaved = (
   candidate: Candidate,
@@ -75,6 +76,7 @@ export class AutomaticPublishing {
     private library: Library,
     private repair: RepairCandidate,
     private verify: typeof verifyCandidate = verifyCandidate,
+    private activity?: ActivityWidget,
   ) {
     mkdirSync(join(library.root, "automation"), {
       recursive: true,
@@ -212,9 +214,7 @@ export class AutomaticPublishing {
       signal.throwIfAborted();
       authorizeAutomatic(this.library.root, run.permission_version);
     };
-    const notify = (message: string, type: "info" | "error" = "info") => {
-      if (ctx.hasUI) ctx.ui.notify(`ATaC: ${run.program_id} ${message}`, type);
-    };
+    const activityId = `automatic:${run.id}`;
     try {
       while (true) {
         authorize();
@@ -226,7 +226,11 @@ export class AutomaticPublishing {
           throw new Error("Candidate changed. Automatic processing stopped.");
         run.state = "testing";
         this.write(run);
-        notify(`automatic test ${run.attempts.length + 1}/3 started.`);
+        this.activity?.start(activityId, ctx, {
+          kind: "testing",
+          programId: run.program_id,
+          round: run.attempts.length + 1,
+        });
         const attempt: AutomaticRun["attempts"][number] = {
           revision: run.revision,
           status: "testing",
@@ -259,7 +263,8 @@ export class AutomaticPublishing {
         if (completed.status === "published") {
           run.state = "published";
           run.diagnostic = "Tests passed. Program published.";
-          notify("published. Tests passed.");
+          if (ctx.hasUI && !this.stopped)
+            ctx.ui.notify(`ATaC: Published ${run.program_id}.`, "info");
           return;
         }
         authorize();
@@ -268,7 +273,6 @@ export class AutomaticPublishing {
               join(this.library.root, "reports", `${completed.report_id}.json`),
             )
           : undefined;
-        notify("automatic test failed.", "error");
         if (report?.failure_kind !== "program" || run.repairs >= 2) {
           throw new Error(
             completed.diagnostic ??
@@ -278,7 +282,11 @@ export class AutomaticPublishing {
         run.state = "revising";
         run.repairs++;
         this.write(run);
-        notify(`automatic revision ${run.repairs}/2 started.`);
+        this.activity?.start(activityId, ctx, {
+          kind: "repairing",
+          programId: run.program_id,
+          round: run.repairs,
+        });
         const revised = await this.repair(
           completed,
           ctx,
@@ -308,7 +316,6 @@ export class AutomaticPublishing {
             "Revision did not produce a new revision. Review this candidate in /atac:inbox.",
           );
         }
-        notify(`automatic revision ${run.repairs}/2 completed.`);
       }
     } catch (error) {
       let revoked = false;
@@ -324,11 +331,13 @@ export class AutomaticPublishing {
         last.status = run.state;
         last.diagnostic = run.diagnostic;
       }
-      notify(
-        `${run.state === "interrupted" ? "automatic processing interrupted" : "automatic processing failed"}. See /atac:inbox for details.`,
-        "error",
-      );
+      if (ctx.hasUI && !this.stopped && run.state === "failed")
+        ctx.ui.notify(
+          `ATaC: ${run.program_id} needs review. Open /atac:inbox.`,
+          "error",
+        );
     } finally {
+      this.activity?.finish(activityId);
       this.write(run);
     }
   }

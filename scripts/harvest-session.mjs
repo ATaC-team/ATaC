@@ -205,10 +205,16 @@ for (const kind of ["direct", "codemode"]) {
     sessionManager: SessionManager.inMemory(root),
   });
   const notices = [];
+  const widgets = [];
   try {
     await session.bindExtensions({
       mode: "rpc",
       uiContext: {
+        setWidget(key, lines, options) {
+          assert.equal(key, "atac");
+          assert.equal(options.placement, "aboveEditor");
+          widgets.push(lines);
+        },
         notify(message, type) {
           notices.push({ message, type });
         },
@@ -240,18 +246,19 @@ for (const kind of ["direct", "codemode"]) {
       job = records("jobs").find(
         (j) => j.snapshot.source.session_id === session.sessionId,
       );
-      if (job && ["done", "failed"].includes(job.state) && notices.length === 2)
+      if (job && ["done", "failed"].includes(job.state) && notices.length === 1)
         break;
       await delay(25);
     } while (Date.now() < deadline);
     assert.equal(job?.state, "done", job?.diagnostic);
     assert.deepEqual(notices, [
-      { message: "ATaC: Program extraction started.", type: "info" },
       {
-        message: "ATaC: Program saved. Open /atac:inbox to review.",
+        message: `ATaC: Saved ${candidate.manifest.program_id} to Inbox.`,
         type: "info",
       },
     ]);
+    assert.equal(widgets[0]?.[0], "ATaC  Extracting programs");
+    assert.equal(widgets.at(-1), undefined);
     assert.equal(parentResponses, 2);
     assert.equal(analysisResponses, 3);
     assert.equal(job.usage.responses, 3);
@@ -275,5 +282,5 @@ for (const kind of ["direct", "codemode"]) {
 }
 assert.equal(records("jobs").length, 2);
 console.log(
-  "Harvest lifecycle passed: ordinary and nested tool calls, independent analysis, lifecycle notices, separate usage.",
+  "Harvest lifecycle passed: ordinary and nested tool calls, independent analysis, activity widget and completion notices, separate usage.",
 );

@@ -1,3 +1,4 @@
+import { ActivityWidget } from "../src/pi/activity.js";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -138,9 +139,8 @@ test("analysis SDK has only library tools, notifies once per lifecycle, deduplic
     assert.equal(calls, 3);
     assert.equal(jobs.list().length, 1);
     assert.deepEqual(notices, [
-      { message: "ATaC: Program extraction started.", type: "info" },
       {
-        message: "ATaC: Program saved. Open /atac:inbox to review.",
+        message: "ATaC: Saved sum to Inbox.",
         type: "info",
       },
     ]);
@@ -183,7 +183,13 @@ test("analysis SDK has only library tools, notifies once per lifecycle, deduplic
 test("analysis stops at eight responses instead of looping or retrying", async () => {
   const root = mkdtempSync(join(tmpdir(), "atac-budget-"));
   const lib = new Library(root);
-  const jobs = new Jobs(lib, DEFAULT_LIMITS);
+  const jobs = new Jobs(
+    lib,
+    DEFAULT_LIMITS,
+    undefined,
+    undefined,
+    new ActivityWidget(),
+  );
   const script = scriptedContext((n) => [
     {
       type: "toolCall",
@@ -214,10 +220,8 @@ test("analysis stops at eight responses instead of looping or retrying", async (
     assert.match(jobs.list()[0]!.diagnostic!, /8 model responses/);
     assert.equal(lib.inbox().length, 0);
     assert.deepEqual(script.notices, [
-      { message: "ATaC: Program extraction started.", type: "info" },
       {
-        message:
-          "ATaC: Program extraction failed. See /atac:inbox for details.",
+        message: "ATaC: Extraction failed. Open /atac:inbox for details.",
         type: "error",
       },
     ]);
@@ -230,7 +234,13 @@ test("analysis stops at eight responses instead of looping or retrying", async (
 test("failed candidate revision resets verification and never automatically runs tests", async () => {
   const root = mkdtempSync(join(tmpdir(), "atac-revise-"));
   const lib = new Library(root);
-  const jobs = new Jobs(lib, DEFAULT_LIMITS);
+  const jobs = new Jobs(
+    lib,
+    DEFAULT_LIMITS,
+    undefined,
+    undefined,
+    new ActivityWidget(),
+  );
   const source = { cwd: root, session_id: "s", request_id: "r", goal: "sum" };
   const asset: Bundle = {
     manifest: {
@@ -289,17 +299,38 @@ test("failed candidate revision resets verification and never automatically runs
     await jobs.waitForIdle();
     const updated = lib.candidate(c.id);
     assert.equal(updated.status, "untested");
+    assert.equal(script.widgets[0]?.[0], "ATaC  Revising sum");
+    assert.equal(script.widgets.at(-1), undefined);
     assert.notEqual(updated.revision, c.revision);
     assert.deepEqual(updated.history, [c.revision]);
     assert.equal(updated.report_id, undefined);
     assert.equal(lib.current("sum"), null);
     assert.deepEqual(script.notices, [
-      { message: "ATaC: Program revision started.", type: "info" },
       {
-        message: "ATaC: Program revised. Open /atac:inbox to review.",
+        message: "ATaC: Saved sum to Inbox.",
         type: "info",
       },
     ]);
+    script.notices.length = 0;
+    const retry = await lib.change(updated.id, updated.revision, (record) => {
+      record.status = "revising";
+      record.owner_pid = process.pid;
+    });
+    await jobs.enqueue(
+      { source, messages: [], calls: [], tools: [], truncated: false },
+      script.ctx,
+      retry,
+      "Improve the program",
+    );
+    await jobs.waitForIdle();
+    assert.equal(lib.candidate(updated.id).status, "failed");
+    assert.deepEqual(script.notices, [
+      {
+        message: "ATaC: sum needs review. Open /atac:inbox for details.",
+        type: "error",
+      },
+    ]);
+    assert.equal(script.widgets.at(-1), undefined);
   } finally {
     await jobs.stop();
     rmSync(root, { recursive: true, force: true });
@@ -309,7 +340,13 @@ test("failed candidate revision resets verification and never automatically runs
 test("analysis reports no candidate and keeps noninteractive sessions quiet", async () => {
   const root = mkdtempSync(join(tmpdir(), "atac-notice-"));
   const lib = new Library(root);
-  const jobs = new Jobs(lib, DEFAULT_LIMITS);
+  const jobs = new Jobs(
+    lib,
+    DEFAULT_LIMITS,
+    undefined,
+    undefined,
+    new ActivityWidget(),
+  );
   const script = scriptedContext(() => [
     { type: "text", text: "No reusable work" },
   ]);
@@ -323,17 +360,18 @@ test("analysis reports no candidate and keeps noninteractive sessions quiet", as
   try {
     await jobs.enqueue(snapshot, script.ctx);
     await jobs.waitForIdle();
-    assert.deepEqual(script.notices, [
-      { message: "ATaC: Program extraction started.", type: "info" },
-      { message: "ATaC: No reusable program found.", type: "info" },
-    ]);
+    assert.deepEqual(script.notices, []);
+    assert.equal(script.widgets[0]?.[0], "ATaC  Extracting programs");
+    assert.equal(script.widgets.at(-1), undefined);
+    const updates = script.widgets.length;
     await jobs.enqueue(
       { ...snapshot, source: { ...snapshot.source, request_id: "two" } },
       { ...script.ctx, hasUI: false },
     );
     await jobs.waitForIdle();
     assert.equal(script.requests(), 2);
-    assert.equal(script.notices.length, 2);
+    assert.equal(script.notices.length, 0);
+    assert.equal(script.widgets.length, updates);
     assert.equal(lib.inbox().length, 0);
   } finally {
     await jobs.stop();
@@ -344,7 +382,13 @@ test("analysis reports no candidate and keeps noninteractive sessions quiet", as
 test("analysis receives current published and Inbox programs before making a save decision", async () => {
   const root = mkdtempSync(join(tmpdir(), "atac-catalog-"));
   const lib = new Library(root);
-  const jobs = new Jobs(lib, DEFAULT_LIMITS);
+  const jobs = new Jobs(
+    lib,
+    DEFAULT_LIMITS,
+    undefined,
+    undefined,
+    new ActivityWidget(),
+  );
   const source = {
     cwd: root,
     session_id: "catalog",

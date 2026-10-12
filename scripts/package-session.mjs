@@ -258,12 +258,16 @@ try {
 for (const interruption of [undefined, "input", "shutdown", "reload"]) {
   session = await child();
   const notices = [];
+  const widgets = [];
   const programId = `automatic-${interruption ?? "publish"}`;
   const marker = join(homedir(), `${programId}-started`);
   try {
     await session.bindExtensions({
       mode: "rpc",
-      uiContext: { notify: (message) => notices.push(message) },
+      uiContext: {
+        notify: (message) => notices.push(message),
+        setWidget: (_key, lines) => widgets.push(lines),
+      },
     });
     await session.prompt("/atac:permissions auto");
     const save = session.agent.state.tools.find((t) => t.name === "atac_save");
@@ -294,13 +298,13 @@ for (const interruption of [undefined, "input", "shutdown", "reload"]) {
       !(interruption
         ? existsSync(marker)
         : candidate().status === "published" &&
-          notices.some((n) => n.includes("published. Tests passed."))) &&
+          notices.some((n) => n === `ATaC: Published ${programId}.`)) &&
       Date.now() < deadline
     )
       await delay(25);
     if (!interruption) {
       assert.equal(candidate().status, "published");
-      assert.ok(notices.some((n) => n.includes("published. Tests passed.")));
+      assert.ok(notices.some((n) => n === `ATaC: Published ${programId}.`));
     } else {
       assert.ok(existsSync(marker), "automatic test started");
       if (interruption === "input")
@@ -321,6 +325,11 @@ for (const interruption of [undefined, "input", "shutdown", "reload"]) {
         false,
       );
     }
+    assert.equal(widgets[0]?.[0], `ATaC  Testing ${programId}`);
+    assert.equal(widgets.at(-1), undefined);
+    assert.ok(widgets.every((lines) => !lines?.join("").includes("·")));
+    if (interruption)
+      assert.ok(notices.every((n) => !n.includes("needs review")));
   } finally {
     await cleanup(session);
   }

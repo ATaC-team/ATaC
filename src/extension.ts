@@ -12,17 +12,24 @@ import {
   type CandidateSaved,
 } from "./runtime/automation.js";
 import { registerPermissions } from "./pi/permissions.js";
+import { ActivityWidget } from "./pi/activity.js";
 
 export default function atac(pi: ExtensionAPI): void {
   if (roles.getStore()) return;
   const library = new Library();
   const config = loadConfig(library.root);
+  let activity = new ActivityWidget();
   let automatic: AutomaticPublishing;
   const saved: CandidateSaved = (candidate, ctx) =>
     automatic.saved(candidate, ctx);
-  let jobs = new Jobs(library, config, saved);
+  let jobs = new Jobs(library, config, saved, undefined, activity);
   const createAutomatic = () =>
-    new AutomaticPublishing(library, (...args) => jobs.repair(...args));
+    new AutomaticPublishing(
+      library,
+      (...args) => jobs.repair(...args),
+      undefined,
+      activity,
+    );
   automatic = createAutomatic();
   const recorder = new Recorder();
   let inbox: AbortController | undefined;
@@ -30,6 +37,7 @@ export default function atac(pi: ExtensionAPI): void {
   let inboxDone: Promise<void> | undefined;
   const stop = async () => {
     stopped = true;
+    activity.dispose();
     inbox?.abort();
     recorder.reset();
     await Promise.all([automatic.stop(), jobs.stop(), inboxDone]);
@@ -53,7 +61,8 @@ export default function atac(pi: ExtensionAPI): void {
   });
   pi.on("session_start", async (_event, ctx) => {
     if (stopped) {
-      jobs = new Jobs(library, config, saved);
+      activity = new ActivityWidget();
+      jobs = new Jobs(library, config, saved, undefined, activity);
       automatic = createAutomatic();
       stopped = false;
     }

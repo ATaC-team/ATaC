@@ -1,3 +1,4 @@
+import { ActivityWidget } from "../src/pi/activity.js";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -94,13 +95,19 @@ function fixture(
       mcp: { loadConfig: () => ({ servers: [], errors: [] }) },
     });
   let automatic: AutomaticPublishing;
-  const jobs = new Jobs(lib, DEFAULT_LIMITS, (c, ctx) =>
-    automatic.saved(c, ctx),
+  const activity = new ActivityWidget();
+  const jobs = new Jobs(
+    lib,
+    DEFAULT_LIMITS,
+    (c, ctx) => automatic.saved(c, ctx),
+    undefined,
+    activity,
   );
   automatic = new AutomaticPublishing(
     lib,
     (...args) => jobs.repair(...args),
     verify,
+    activity,
   );
   const saveTool = programTools(lib, DEFAULT_LIMITS, automatic.saved).find(
     (t) => t.name === "atac_save",
@@ -137,6 +144,7 @@ function fixture(
       return lib.candidate(saved.candidate_id);
     },
     async close() {
+      activity.dispose();
       await automatic.stop();
       await jobs.stop();
       rmSync(root, { recursive: true, force: true });
@@ -204,7 +212,7 @@ test("manual is the default; enabling auto leaves history alone and save waits f
       /Tests: 1\/3 · Repairs: 0\/2/,
     );
     assert.ok(
-      f.script.notices.some((n) => /published. Tests passed/.test(n.message)),
+      f.script.notices.some((n) => n.message === "ATaC: Published sum."),
     );
   } finally {
     await f.close();
@@ -254,15 +262,26 @@ test("a real analysis session repairs the same candidate, preserves history, and
       ["failed", "published"],
     );
     assert.equal(f.jobs.list()[0]!.automatic_chain, runs[0]!.id);
+    assert.deepEqual(f.script.notices, [
+      { message: "ATaC: Published sum.", type: "info" },
+    ]);
     assert.ok(
-      f.script.notices.some((n) =>
-        /automatic revision 1\/2 started/.test(n.message),
+      f.script.widgets.some(
+        (lines) =>
+          lines?.[0] === "ATaC  Repairing sum" &&
+          lines[1] === "      Round 1 of 2    Elapsed 0s",
       ),
     );
     assert.ok(
-      f.script.notices.some((n) =>
-        /automatic revision 1\/2 completed/.test(n.message),
+      f.script.widgets.some(
+        (lines) =>
+          lines?.[0] === "ATaC  Testing sum" &&
+          lines[1]?.startsWith("      Attempt 2 of 3"),
       ),
+    );
+    assert.equal(f.script.widgets.at(-1), undefined);
+    assert.ok(
+      f.script.widgets.every((lines) => !lines?.join("").includes("·")),
     );
   } finally {
     await f.close();
@@ -292,6 +311,10 @@ test("three failures consume exactly two repairs and keep the previous published
     assert.equal(run.attempts.length, 3);
     assert.equal(run.repairs, 2);
     assert.equal(run.state, "failed");
+    assert.deepEqual(f.script.notices, [
+      { message: "ATaC: sum needs review. Open /atac:inbox.", type: "error" },
+    ]);
+    assert.equal(f.script.widgets.at(-1), undefined);
     assert.equal(f.script.requests(), 4);
     assert.equal(f.lib.current("sum"), original.revision);
     assert.equal(automaticRuns(f.lib.root).length, 1);
@@ -327,6 +350,10 @@ for (const kind of [
       assert.equal(f.lib.current("sum"), null);
       assert.notEqual(f.lib.candidate(c.id).status, "revising");
       assert.ok(run.diagnostic);
+      assert.deepEqual(f.script.notices, [
+        { message: "ATaC: sum needs review. Open /atac:inbox.", type: "error" },
+      ]);
+      assert.equal(f.script.widgets.at(-1), undefined);
     } finally {
       await f.close();
     }
@@ -640,6 +667,11 @@ test("new input cancels a running repair model without replaying the repair", as
     await f.automatic.waitForIdle();
     const run = automaticRuns(f.lib.root)[0]!;
     assert.equal(run.state, "interrupted");
+    assert.deepEqual(f.script.notices, []);
+    assert.equal(f.script.widgets.at(-1), undefined);
+    assert.ok(
+      f.script.widgets.some((lines) => lines?.[0] === "ATaC  Repairing sum"),
+    );
     assert.equal(run.attempts.length, 1);
     assert.equal(run.repairs, 1);
     assert.ok(f.jobs.list().every((j) => j.state === "failed"));
@@ -674,9 +706,17 @@ test("automatic chains run serially and publication conflicts stop without repai
     assert.match(run.diagnostic!, /Publication conflict/);
     assert.equal(f.script.requests(), 0);
     const notices = f.script.notices.map((n) => n.message);
-    assert.ok(
-      notices.findIndex((n) => /published/.test(n)) <
-        notices.findLastIndex((n) => /test 1\/3 started/.test(n)),
+    assert.deepEqual(notices, [
+      "ATaC: Published sum.",
+      "ATaC: sum needs review. Open /atac:inbox.",
+    ]);
+    assert.deepEqual(
+      f.script.widgets
+        .map((lines) => lines?.[0])
+        .filter(
+          (title, index, titles) => index === 0 || title !== titles[index - 1],
+        ),
+      ["ATaC  Testing sum", undefined, "ATaC  Testing sum", undefined],
     );
   } finally {
     await f.close();

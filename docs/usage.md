@@ -22,7 +22,7 @@ pi downloads the package and installs its dependencies. Restart pi or run `/relo
 
 Give pi a task as usual. After it finishes, ATaC analyzes the completed work for reusable programs. It can extract a program from ordinary tool calls or a Codemode script. One-off work and tasks already covered by existing programs may be skipped.
 
-Candidates go to Inbox. Background analysis never asks questions or executes candidate code. pi shows a notification when extraction or revision starts and when it finishes, including saved candidates, skipped extraction, and failures. Activity shows job progress, model usage, and diagnostics.
+Candidates go to Inbox. Background analysis never asks questions or executes candidate code. A widget above the input shows running extraction, revision, automatic testing, and repair, with elapsed time and test or repair rounds. Completed activities disappear immediately. Brief notifications confirm saved candidates, publication, or failures; extraction without a reusable program finishes silently. Activity shows job progress, model usage, and diagnostics.
 
 ## Publishing permissions
 

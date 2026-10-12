@@ -27,6 +27,7 @@ import { loadConfig, type Config } from "../config.js";
 import { roles } from "../runtime/roles.js";
 import { closeSession } from "../runtime/verification.js";
 import type { CandidateSaved } from "../runtime/automation.js";
+import type { ActivityWidget } from "../pi/activity.js";
 
 export interface Job {
   id: string;
@@ -74,6 +75,7 @@ export class Jobs {
       signal: AbortSignal;
       authorize: () => void;
     },
+    private activity?: ActivityWidget,
   ) {}
   private path(id: string) {
     if (!/^[a-f0-9-]+$/.test(id)) throw new Error("Invalid job id");
@@ -357,11 +359,20 @@ export class Jobs {
       );
       let session: AgentSession | undefined;
       let responses = 0;
-      const activity =
-        job.kind === "harvest" ? "Program extraction" : "Program revision";
+      const activityId = `job:${job.id}`;
       try {
-        if (ctx.hasUI && !this.automatic)
-          ctx.ui.notify(`ATaC: ${activity} started.`, "info");
+        if (!this.automatic)
+          this.activity?.start(
+            activityId,
+            ctx,
+            job.candidate
+              ? {
+                  kind: "revising",
+                  programId: this.library.candidate(job.candidate.id)
+                    .program_id,
+                }
+              : { kind: "extracting" },
+          );
         await roles.run("analysis", async () => {
           const signal = this.active!.signal;
           const agentDir = getAgentDir();
@@ -566,6 +577,7 @@ export class Jobs {
             : "failed";
         job.diagnostic = errorText(error);
       } finally {
+        this.activity?.finish(activityId);
         clearTimeout(timer);
         this.automatic?.signal.removeEventListener("abort", abortAutomatic);
         if (session) {
@@ -593,24 +605,22 @@ export class Jobs {
             .catch(() => {});
         }
         this.active = undefined;
-        if (ctx.hasUI && !this.automatic) {
-          const message =
-            job.state === "queued"
-              ? `${activity} paused.`
-              : job.state === "failed"
-                ? `${activity} failed.${job.saved_id ? " Candidate saved to Inbox." : ""} See /atac:inbox for details.`
-                : job.saved_id &&
-                    loadConfig(this.library.root).permissions === "auto"
-                  ? "Program saved for automatic verification."
-                  : job.saved_id
-                    ? `Program ${job.kind === "revise" ? "revised" : "saved"}. Open /atac:inbox to review.`
-                    : job.kind === "revise"
-                      ? "No revision produced. See /atac:inbox for details."
-                      : "No reusable program found.";
-          ctx.ui.notify(
-            `ATaC: ${message}`,
-            job.state === "failed" ? "error" : "info",
-          );
+        if (ctx.hasUI && !this.automatic && !this.stopped) {
+          if (job.state === "failed" || (job.candidate && !job.saved_id)) {
+            const message = job.candidate
+              ? `${this.library.candidate(job.candidate.id).program_id} needs review.`
+              : "Extraction failed.";
+            ctx.ui.notify(
+              `ATaC: ${message} Open /atac:inbox for details.`,
+              "error",
+            );
+          } else if (
+            job.saved_id &&
+            loadConfig(this.library.root).permissions === "manual"
+          ) {
+            const c = this.library.candidate(job.saved_id);
+            ctx.ui.notify(`ATaC: Saved ${c.program_id} to Inbox.`, "info");
+          }
         }
       }
     }

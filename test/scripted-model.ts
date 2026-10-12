@@ -10,6 +10,7 @@ export function scriptedContext(
 ) {
   let requests = 0;
   const notices: { message: string; type: string }[] = [];
+  const widgets: (string[] | undefined)[] = [];
   const provider = {
     baseUrl: "http://unused.invalid",
     apiKey: "fixture-key",
@@ -61,9 +62,13 @@ export function scriptedContext(
   };
   return {
     notices,
+    widgets,
     ctx: {
       hasUI: true,
+      mode: "rpc",
       ui: {
+        setWidget: (_key: string, lines: string[] | undefined) =>
+          widgets.push(lines),
         notify: (message: string, type: string) =>
           notices.push({ message, type }),
       },
