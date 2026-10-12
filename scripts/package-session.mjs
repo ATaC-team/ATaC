@@ -293,7 +293,8 @@ for (const interruption of [undefined, "input", "shutdown", "reload"]) {
     while (
       !(interruption
         ? existsSync(marker)
-        : candidate().status === "published") &&
+        : candidate().status === "published" &&
+          notices.some((n) => n.includes("published. Tests passed."))) &&
       Date.now() < deadline
     )
       await delay(25);
